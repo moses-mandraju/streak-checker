@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-background: hsl(150 40% 99%);
+  --color-foreground: hsl(164 24% 10%);
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(164 24% 10%);
+  --color-popover: hsl(0 0% 100%);
+  --color-popover-foreground: hsl(164 24% 10%);
+  --color-primary: hsl(158 64% 38%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  --color-secondary: hsl(152 32% 94%);
+  --color-secondary-foreground: hsl(164 24% 16%);
+  --color-muted: hsl(152 18% 93%);
+  --color-muted-foreground: hsl(165 8% 44%);
+  --color-accent: hsl(152 36% 92%);
+  --color-accent-foreground: hsl(164 24% 14%);
+  --color-destructive: hsl(0 72% 51%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+  --color-border: hsl(154 18% 86%);
+  --color-input: hsl(154 18% 86%);
+  --color-ring: hsl(158 64% 38%);
+  --radius-lg: 0.5rem;
+  --radius-md: 0.375rem;
+  --radius-sm: 0.25rem;
+  --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+    font-family: var(--font-sans);
+    background: var(--color-background);
+    color: var(--color-foreground);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --color-background: hsl(164 32% 7%);
+    --color-foreground: hsl(150 28% 96%);
+    --color-card: hsl(164 28% 10%);
+    --color-card-foreground: hsl(150 28% 96%);
+    --color-popover: hsl(164 28% 10%);
+    --color-popover-foreground: hsl(150 28% 96%);
+    --color-primary: hsl(158 64% 44%);
+    --color-primary-foreground: hsl(164 28% 8%);
+    --color-secondary: hsl(164 20% 15%);
+    --color-secondary-foreground: hsl(150 28% 94%);
+    --color-muted: hsl(164 18% 15%);
+    --color-muted-foreground: hsl(154 12% 68%);
+    --color-accent: hsl(164 20% 17%);
+    --color-accent-foreground: hsl(150 28% 95%);
+    --color-border: hsl(164 16% 22%);
+    --color-input: hsl(164 16% 22%);
+    --color-ring: hsl(158 64% 48%);
+  }
+
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    min-width: 320px;
+    min-height: 100vh;
+    margin: 0;
+    background: var(--color-background);
+  }
+
+  button,
+  input,
+  textarea {
+    font: inherit;
+  }
+}
