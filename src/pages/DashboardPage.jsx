@@ -1,5 +1,6 @@
 import { CheckCircle2, Flame, ListChecks, Trophy } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
+import InstallBanner from '../components/InstallBanner'
 import StatCard from '../components/StatCard'
 import EmptyState from '../components/EmptyState'
 import HabitCard from '../components/HabitCard'
@@ -26,6 +27,7 @@ export default function DashboardPage() {
         title={`Welcome, ${user?.displayName?.split(' ')[0] || 'there'}`}
         description="A calm view of your habit momentum for today."
       />
+      <InstallBanner />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={ListChecks} label="Total habits" value={habits.length} />
         <StatCard icon={CheckCircle2} label="Completed today" value={completedToday} />

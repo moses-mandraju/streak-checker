@@ -15,6 +15,7 @@ import { logoutUser } from '../firebase/auth'
 import { useAuthStore } from '../store/authStore'
 import { useThemeStore } from '../store/themeStore'
 import { useHabits } from '../hooks/useHabits'
+import { usePwaInstall } from '../hooks/usePwaInstall'
 import { Button } from '../components/ui/button'
 import { cn } from '../utils/cn'
 
@@ -30,6 +31,7 @@ export default function AppLayout() {
   const user = useAuthStore((state) => state.user)
   const theme = useThemeStore((state) => state.theme)
   const toggleTheme = useThemeStore((state) => state.toggleTheme)
+  const { canInstall, promptInstall } = usePwaInstall()
   useHabits(user?.uid)
 
   async function handleLogout() {
@@ -84,14 +86,21 @@ export default function AppLayout() {
               <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button className="flex-1" variant="outline" onClick={toggleTheme}>
-              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              Theme
-            </Button>
-            <Button aria-label="Logout" size="icon" variant="outline" onClick={handleLogout}>
-              <LogOut className="h-4 w-4" />
-            </Button>
+          <div className="flex flex-col gap-2">
+            {canInstall && (
+              <Button className="w-full" variant="default" onClick={promptInstall}>
+                Install Streak
+              </Button>
+            )}
+            <div className="flex gap-2">
+              <Button className="flex-1" variant="outline" onClick={toggleTheme}>
+                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                Theme
+              </Button>
+              <Button aria-label="Logout" size="icon" variant="outline" onClick={handleLogout}>
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </aside>
