@@ -17,6 +17,9 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,ico,png,webp,json}'],
         navigateFallback: '/',
       },
+      pwaAssets: {
+        disabled: true,
+      },
     }),
   ],
 })
