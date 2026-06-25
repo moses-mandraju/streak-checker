@@ -6,6 +6,7 @@ export function usePwaInstall() {
 
   useEffect(() => {
     function handleBeforeInstallPrompt(event) {
+      console.log('PWA beforeinstallprompt event fired', event)
       event.preventDefault()
       setPromptEvent(event)
       setCanInstall(true)
@@ -17,12 +18,14 @@ export function usePwaInstall() {
 
   async function promptInstall() {
     if (!promptEvent) {
+      console.log('PWA promptInstall called but no promptEvent available')
       return
     }
 
     promptEvent.prompt()
     const choice = await promptEvent.userChoice
 
+    console.log('PWA install choice', choice)
     setCanInstall(false)
     setPromptEvent(null)
 

@@ -10,9 +10,11 @@ import StatisticsPage from './pages/StatisticsPage'
 import ProfilePage from './pages/ProfilePage'
 import LoginPage from './pages/LoginPage'
 import { useTheme } from './hooks/useTheme'
+import { useMessaging } from './hooks/useMessaging'
 
 function App() {
   useTheme()
+  useMessaging()
 
   return (
     <>

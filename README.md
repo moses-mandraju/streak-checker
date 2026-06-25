@@ -11,6 +11,7 @@ npm install
 ```
 
 2. Create `.env` from `.env.example` and add your Firebase web app values.
+   - Add `VITE_FIREBASE_VAPID_KEY` from Firebase Cloud Messaging settings for browser push.
 
 3. Enable Google sign-in in Firebase Authentication.
 

@@ -13,12 +13,17 @@ export default defineConfig({
       injectRegister: 'auto',
       includeAssets: ['favicon.svg', 'manifest.webmanifest'],
       manifest: false,
-      workbox: {
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,svg,ico,png,webp,json}'],
-        navigateFallback: '/',
       },
       pwaAssets: {
         disabled: true,
+      },
+      devOptions: {
+        enabled: true,
       },
     }),
   ],

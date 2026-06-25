@@ -1,11 +1,12 @@
-import { CalendarCheck, Flame, Pencil, Trash2, Trophy } from 'lucide-react'
+import { Bell, CalendarCheck, Flame, Pencil, Trash2, Trophy } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { completeHabit, deleteHabit } from '../services/habitService'
 import { formatDate, todayKey } from '../utils/date'
 import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
+import ReminderCard from './ReminderCard'
 
-export default function HabitCard({ habit, userId, onEdit }) {
+export default function HabitCard({ habit, userId, onEdit, onManageReminder }) {
   const completedToday = (habit.completionHistory || []).includes(todayKey())
 
   async function handleComplete() {
@@ -60,30 +61,45 @@ export default function HabitCard({ habit, userId, onEdit }) {
             </Button>
           </div>
         </div>
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <div className="rounded-lg bg-muted p-3">
-            <p className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Flame className="h-3.5 w-3.5" />
-              Current
-            </p>
-            <p className="mt-1 text-xl font-semibold">{habit.currentStreak || 0} days</p>
+        <div className="mt-5 grid gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-lg bg-muted p-3">
+              <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Flame className="h-3.5 w-3.5" />
+                Current
+              </p>
+              <p className="mt-1 text-xl font-semibold">{habit.currentStreak || 0} days</p>
+            </div>
+            <div className="rounded-lg bg-muted p-3">
+              <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Trophy className="h-3.5 w-3.5" />
+                Longest
+              </p>
+              <p className="mt-1 text-xl font-semibold">{habit.longestStreak || 0} days</p>
+            </div>
           </div>
-          <div className="rounded-lg bg-muted p-3">
-            <p className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Trophy className="h-3.5 w-3.5" />
-              Longest
-            </p>
-            <p className="mt-1 text-xl font-semibold">{habit.longestStreak || 0} days</p>
+          <div>
+            <ReminderCard reminder={habit} />
           </div>
+          {onManageReminder ? (
+            <Button
+              className="mt-2 w-full"
+              variant="outline"
+              onClick={() => onManageReminder(habit)}
+            >
+              <Bell className="h-4 w-4" />
+              Manage reminder
+            </Button>
+          ) : null}
+          <Button
+            className="w-full"
+            disabled={completedToday}
+            variant={completedToday ? 'secondary' : 'default'}
+            onClick={handleComplete}
+          >
+            {completedToday ? 'Completed today' : 'Complete Today'}
+          </Button>
         </div>
-        <Button
-          className="mt-5 w-full"
-          disabled={completedToday}
-          variant={completedToday ? 'secondary' : 'default'}
-          onClick={handleComplete}
-        >
-          {completedToday ? 'Completed today' : 'Complete Today'}
-        </Button>
       </CardContent>
     </Card>
   )

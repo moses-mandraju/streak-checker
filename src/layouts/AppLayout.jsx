@@ -9,7 +9,9 @@ import {
   Moon,
   Sun,
   User,
+  X,
 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { logoutUser } from '../firebase/auth'
 import { useAuthStore } from '../store/authStore'
@@ -35,6 +37,8 @@ export default function AppLayout() {
   useHabits(user?.uid)
 
   async function handleLogout() {
+    sessionStorage.removeItem('installBannerDismissed')
+
     try {
       await logoutUser()
       toast.success('Logged out.')

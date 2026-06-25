@@ -5,9 +5,15 @@ import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import HabitCard from '../components/HabitCard'
 import HabitForm from '../components/HabitForm'
+import ReminderSettingsModal from '../components/ReminderSettingsModal'
 import { Button } from '../components/ui/button'
 import { Dialog } from '../components/ui/dialog'
-import { createHabit, updateHabit } from '../services/habitService'
+import {
+  createHabit,
+  updateHabit,
+  updateHabitReminder,
+  defaultReminderSettings,
+} from '../services/habitService'
 import { useAuthStore } from '../store/authStore'
 import { useHabitStore } from '../store/habitStore'
 
@@ -17,6 +23,8 @@ export default function HabitsPage() {
   const loading = useHabitStore((state) => state.loading)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingHabit, setEditingHabit] = useState(null)
+  const [reminderDialogOpen, setReminderDialogOpen] = useState(false)
+  const [selectedHabitForReminder, setSelectedHabitForReminder] = useState(null)
   const [submitting, setSubmitting] = useState(false)
 
   function openCreateDialog() {
@@ -27,6 +35,11 @@ export default function HabitsPage() {
   function openEditDialog(habit) {
     setEditingHabit(habit)
     setDialogOpen(true)
+  }
+
+  function openReminderDialog(habit) {
+    setSelectedHabitForReminder(habit)
+    setReminderDialogOpen(true)
   }
 
   async function handleSubmit(values) {
@@ -43,6 +56,24 @@ export default function HabitsPage() {
       setEditingHabit(null)
     } catch (error) {
       toast.error(error?.message || 'Unable to save habit.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleSaveReminder(reminderSettings) {
+    if (!selectedHabitForReminder) {
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      await updateHabitReminder(user.uid, selectedHabitForReminder.id, reminderSettings)
+      toast.success('Reminder settings saved.')
+      setReminderDialogOpen(false)
+      setSelectedHabitForReminder(null)
+    } catch (error) {
+      toast.error(error?.message || 'Unable to save reminder settings.')
     } finally {
       setSubmitting(false)
     }
@@ -77,6 +108,7 @@ export default function HabitsPage() {
               habit={habit}
               userId={user.uid}
               onEdit={() => openEditDialog(habit)}
+              onManageReminder={() => openReminderDialog(habit)}
             />
           ))}
         </div>
@@ -93,6 +125,23 @@ export default function HabitsPage() {
           onSubmit={handleSubmit}
         />
       </Dialog>
+      <ReminderSettingsModal
+        open={reminderDialogOpen}
+        onOpenChange={setReminderDialogOpen}
+        reminderSettings={
+          selectedHabitForReminder
+            ? {
+                reminderEnabled: selectedHabitForReminder.reminderEnabled,
+                reminderTime: selectedHabitForReminder.reminderTime,
+                reminderFrequency: selectedHabitForReminder.reminderFrequency,
+                selectedDays: selectedHabitForReminder.selectedDays || [],
+                notificationTitle: selectedHabitForReminder.notificationTitle,
+                notificationMessage: selectedHabitForReminder.notificationMessage,
+              }
+            : defaultReminderSettings
+        }
+        onSave={handleSaveReminder}
+      />
     </>
   )
 }
