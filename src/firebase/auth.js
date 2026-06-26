@@ -6,7 +6,12 @@ import {
   signInWithPopup,
   signOut,
 } from 'firebase/auth'
-import { auth, isFirebaseConfigured } from './config'
+import {
+  doc,
+  setDoc,
+  serverTimestamp,
+} from 'firebase/firestore'
+import { auth, db, isFirebaseConfigured } from './config'
 
 const provider = new GoogleAuthProvider()
 
@@ -18,8 +23,28 @@ function assertAuthReady() {
 
 export async function signInWithGoogle() {
   assertAuthReady()
+
   await setPersistence(auth, browserLocalPersistence)
-  return signInWithPopup(auth, provider)
+
+  const result = await signInWithPopup(auth, provider)
+
+  const user = result.user
+
+  await setDoc(
+    doc(db, 'users', user.uid),
+    {
+      uid: user.uid,
+      displayName: user.displayName,
+      email: user.email,
+      photoURL: user.photoURL,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      createdAt: serverTimestamp(),
+      lastLoginAt: serverTimestamp(),
+    },
+    { merge: true }
+  )
+
+  return result
 }
 
 export function observeAuth(callback) {
