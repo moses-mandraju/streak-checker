@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Bell, BellOff } from 'lucide-react'
 import toast from 'react-hot-toast'
+
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import HabitCard from '../components/HabitCard'
@@ -8,6 +9,8 @@ import HabitForm from '../components/HabitForm'
 import ReminderSettingsModal from '../components/ReminderSettingsModal'
 import { Button } from '../components/ui/button'
 import { Dialog } from '../components/ui/dialog'
+import { Card, CardContent } from '../components/ui/card'
+
 import {
   createHabit,
   updateHabit,
@@ -21,6 +24,7 @@ export default function HabitsPage() {
   const user = useAuthStore((state) => state.user)
   const habits = useHabitStore((state) => state.habits)
   const loading = useHabitStore((state) => state.loading)
+
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingHabit, setEditingHabit] = useState(null)
   const [reminderDialogOpen, setReminderDialogOpen] = useState(false)
@@ -62,10 +66,7 @@ export default function HabitsPage() {
   }
 
   async function handleSaveReminder(reminderSettings) {
-    if (!selectedHabitForReminder) {
-      return
-    }
-
+    if (!selectedHabitForReminder) return
     setSubmitting(true)
     try {
       await updateHabitReminder(user.uid, selectedHabitForReminder.id, reminderSettings)
@@ -79,12 +80,15 @@ export default function HabitsPage() {
     }
   }
 
+  const habitsWithReminder = habits.filter((h) => h.reminderEnabled)
+  const habitsWithoutReminder = habits.filter((h) => !h.reminderEnabled)
+
   return (
     <>
       <PageHeader
         eyebrow="Habits"
         title="Manage your habits"
-        description="Add as many habits as you want, then complete each one once per day."
+        description="Add habits, mark them complete each day, and configure reminders."
         action={
           <Button onClick={openCreateDialog}>
             <Plus className="h-4 w-4" />
@@ -92,6 +96,7 @@ export default function HabitsPage() {
           </Button>
         }
       />
+
       {loading ? (
         <div className="grid gap-4 lg:grid-cols-2">
           {[1, 2, 3, 4].map((item) => (
@@ -101,18 +106,52 @@ export default function HabitsPage() {
       ) : habits.length === 0 ? (
         <EmptyState onAdd={openCreateDialog} />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
-          {habits.map((habit) => (
-            <HabitCard
-              key={habit.id}
-              habit={habit}
-              userId={user.uid}
-              onEdit={() => openEditDialog(habit)}
-              onManageReminder={() => openReminderDialog(habit)}
-            />
-          ))}
-        </div>
+        <>
+          {/* Reminder summary bar */}
+          <Card className="mb-6 border-primary/20">
+            <CardContent className="flex items-center justify-between p-4">
+              <div className="flex items-center gap-3">
+                <Bell className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">
+                    {habitsWithReminder.length} of {habits.length} habits have reminders on
+                  </p>
+                  {habitsWithoutReminder.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {habitsWithoutReminder.length} habit
+                      {habitsWithoutReminder.length > 1 ? 's' : ''} without a reminder
+                    </p>
+                  )}
+                </div>
+              </div>
+              {habitsWithoutReminder.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => openReminderDialog(habitsWithoutReminder[0])}
+                >
+                  <BellOff className="mr-2 h-4 w-4" />
+                  Set reminders
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Habit grid */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            {habits.map((habit) => (
+              <HabitCard
+                key={habit.id}
+                habit={habit}
+                userId={user.uid}
+                onEdit={() => openEditDialog(habit)}
+                onManageReminder={() => openReminderDialog(habit)}
+              />
+            ))}
+          </div>
+        </>
       )}
+
       <Dialog
         open={dialogOpen}
         title={editingHabit ? 'Edit habit' : 'Add habit'}
@@ -125,6 +164,7 @@ export default function HabitsPage() {
           onSubmit={handleSubmit}
         />
       </Dialog>
+
       <ReminderSettingsModal
         open={reminderDialogOpen}
         onOpenChange={setReminderDialogOpen}
