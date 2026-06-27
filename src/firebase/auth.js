@@ -9,9 +9,11 @@ import {
 import {
   doc,
   setDoc,
+  deleteDoc,
   serverTimestamp,
 } from 'firebase/firestore'
 import { auth, db, isFirebaseConfigured } from './config'
+import { getDeviceFingerprint } from '../utils/deviceFingerprint'
 
 const provider = new GoogleAuthProvider()
 
@@ -56,9 +58,20 @@ export function observeAuth(callback) {
   return onAuthStateChanged(auth, callback)
 }
 
-export function logoutUser() {
+export async function logoutUser() {
   if (!isFirebaseConfigured || !auth) {
     return Promise.resolve()
+  }
+
+  const uid = auth.currentUser?.uid
+  if (uid) {
+    try {
+      const deviceId = await getDeviceFingerprint()
+      const tokenDoc = doc(db, 'users', uid, 'deviceTokens', deviceId)
+      await deleteDoc(tokenDoc)
+    } catch (err) {
+      console.warn('Failed to remove device token on logout:', err)
+    }
   }
 
   return signOut(auth)
