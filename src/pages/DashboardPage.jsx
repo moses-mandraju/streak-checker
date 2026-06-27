@@ -27,7 +27,7 @@ export default function DashboardPage() {
         title={`Welcome, ${user?.displayName?.split(' ')[0] || 'there'}`}
         description="A calm view of your habit momentum for today."
       />
-      <InstallBanner />
+      {/* <InstallBanner /> */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={ListChecks} label="Total habits" value={habits.length} />
         <StatCard icon={CheckCircle2} label="Completed today" value={completedToday} />
