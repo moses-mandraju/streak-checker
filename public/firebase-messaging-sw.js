@@ -14,11 +14,15 @@ firebase.initializeApp({
 const messaging = firebase.messaging()
 
 messaging.onBackgroundMessage((payload) => {
-  self.registration.showNotification(
-    payload.notification?.title || 'Streak Checker Reminder',
-    {
-      body: payload.notification?.body || 'Open the app to keep your streak going.',
-      icon: '/favicon.svg'
-    }
-  )
+  const title = payload.notification?.title || 'Streak Checker Reminder'
+  const body = payload.notification?.body || 'Open the app to keep your streak going.'
+  const tag = payload.data?.tag || `streak-reminder-${Date.now()}`
+
+  self.registration.showNotification(title, {
+    body,
+    icon: '/favicon.svg',
+    tag,
+    renotify: true,
+    requireInteraction: true
+  })
 })

@@ -43,7 +43,7 @@ export default function DashboardPage() {
   const nextHabit = remainingHabits[0]
 
   const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : 'Evening'
+  const greeting = hour < 12 ? 'Morning-' : hour < 17 ? 'Afternoon-' : 'Evening'
 
   return (
     <>
