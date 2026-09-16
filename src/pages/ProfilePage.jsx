@@ -1,16 +1,14 @@
-import { LogOut, Mail, Moon, Sun, User } from 'lucide-react'
+import { LogOut, Mail, User } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/PageHeader'
 import { Button } from '../components/ui/button'
 import { Card, CardContent } from '../components/ui/card'
 import { logoutUser } from '../firebase/auth'
 import { useAuthStore } from '../store/authStore'
-import { useThemeStore } from '../store/themeStore'
+import ThemeSelector from '../components/ThemeSelector'
 
 export default function ProfilePage() {
   const user = useAuthStore((state) => state.user)
-  const theme = useThemeStore((state) => state.theme)
-  const toggleTheme = useThemeStore((state) => state.toggleTheme)
 
   async function handleLogout() {
     try {
@@ -26,7 +24,7 @@ export default function ProfilePage() {
       <PageHeader
         eyebrow="Profile"
         title="Account"
-        description="Your Firebase Authentication profile and app preferences."
+        description="Your account and Habitly preferences."
       />
       <Card className="max-w-2xl">
         <CardContent className="p-6">
@@ -47,11 +45,8 @@ export default function ProfilePage() {
               </p>
             </div>
           </div>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Button variant="outline" onClick={toggleTheme}>
-              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              Toggle theme
-            </Button>
+          <div className="mt-8 border-t border-border pt-6"><p className="mb-3 text-sm font-semibold">Appearance</p><ThemeSelector /></div>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <Button variant="destructive" onClick={handleLogout}>
               <LogOut className="h-4 w-4" />
               Logout

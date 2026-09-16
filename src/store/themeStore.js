@@ -4,13 +4,10 @@ import { persist } from 'zustand/middleware'
 export const useThemeStore = create(
   persist(
     (set) => ({
-      theme: 'system',
+      theme: 'emerald',
       setTheme: (theme) => set({ theme }),
-      toggleTheme: () =>
-        set((state) => ({
-          theme: state.theme === 'dark' ? 'light' : 'dark',
-        })),
+      toggleTheme: () => set((state) => ({ theme: state.theme === 'emerald' ? 'ocean' : 'emerald' })),
     }),
-    { name: 'streak-checker-theme' },
+    { name: 'habitly-theme' },
   ),
 )

@@ -45,7 +45,7 @@ export default function InstallBanner() {
         <div className="flex items-start gap-3">
           <Download className="mt-1 h-5 w-5 flex-shrink-0" />
           <div>
-            <p className="font-medium">Install Streak Checker</p>
+            <p className="font-medium">Install Habitly</p>
             <p className="text-sm opacity-90">
               {canInstall
                 ? 'Add the app to your home screen for quick access.'

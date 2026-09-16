@@ -3,34 +3,34 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-background: hsl(150 40% 99%);
-  --color-foreground: hsl(164 24% 10%);
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(164 24% 10%);
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(164 24% 10%);
-  --color-primary: hsl(158 64% 38%);
-  --color-primary-foreground: hsl(0 0% 100%);
-  --color-secondary: hsl(152 32% 94%);
-  --color-secondary-foreground: hsl(164 24% 16%);
-  --color-muted: hsl(152 18% 93%);
-  --color-muted-foreground: hsl(165 8% 44%);
-  --color-accent: hsl(152 36% 92%);
-  --color-accent-foreground: hsl(164 24% 14%);
+  --color-background: #071A16;
+  --color-foreground: #F3F7F5;
+  --color-card: #102A23;
+  --color-card-foreground: #F3F7F5;
+  --color-popover: #14352C;
+  --color-popover-foreground: #F3F7F5;
+  --color-primary: #35D399;
+  --color-primary-foreground: #071A16;
+  --color-secondary: #14352C;
+  --color-secondary-foreground: #F3F7F5;
+  --color-muted: #14352C;
+  --color-muted-foreground: #9BAFA8;
+  --color-accent: #1A4035;
+  --color-accent-foreground: #F3F7F5;
   --color-destructive: hsl(0 72% 51%);
   --color-destructive-foreground: hsl(0 0% 100%);
-  --color-border: hsl(154 18% 86%);
-  --color-input: hsl(154 18% 86%);
-  --color-ring: hsl(158 64% 38%);
-  --radius-lg: 0.5rem;
-  --radius-md: 0.375rem;
+  --color-border: rgb(155 175 168 / 16%);
+  --color-input: rgb(155 175 168 / 20%);
+  --color-ring: #35D399;
+  --radius-lg: 0.875rem;
+  --radius-md: 0.625rem;
   --radius-sm: 0.25rem;
   --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
   :root {
-    color-scheme: light;
+    color-scheme: dark;
     font-family: var(--font-sans);
     background: var(--color-background);
     color: var(--color-foreground);
@@ -70,6 +70,7 @@
     min-height: 100vh;
     margin: 0;
     background: var(--color-background);
+    background-image: radial-gradient(circle at 75% -10%, rgb(53 211 153 / 9%), transparent 30rem);
   }
 
   button,
@@ -78,3 +79,19 @@
     font: inherit;
   }
 }
+
+@keyframes completion-pop {
+  0% { transform: scale(.92); }
+  55% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+.completion-pop { animation: completion-pop 260ms ease-out; }
+
+/* Habitly theme packs: each changes the complete surface hierarchy, not only the accent. */
+:root[data-theme='emerald'] { --color-background:#071512; --color-card:#0D211C; --color-popover:#122B24; --color-secondary:#14342B; --color-muted:#18362D; --color-primary:#35D399; --color-primary-foreground:#062018; --color-muted-foreground:#8FA59D; --color-accent:#1A4035; --color-border:rgb(143 165 157 / 18%); --color-ring:#35D399; }
+:root[data-theme='ocean'] { --color-background:#08131F; --color-card:#0E2030; --color-popover:#132B3D; --color-secondary:#163348; --color-muted:#183449; --color-primary:#5DD4FF; --color-primary-foreground:#061922; --color-muted-foreground:#91AABD; --color-accent:#193B52; --color-border:rgb(145 170 189 / 18%); --color-ring:#5DD4FF; }
+:root[data-theme='lavender'] { --color-background:#15101F; --color-card:#251A32; --color-popover:#30223F; --color-secondary:#36264A; --color-muted:#3A2C4C; --color-primary:#B69CFF; --color-primary-foreground:#1A1027; --color-muted-foreground:#B0A1BF; --color-accent:#403054; --color-border:rgb(176 161 191 / 18%); --color-ring:#B69CFF; }
+:root[data-theme='sunset'] { --color-background:#1D110E; --color-card:#301C17; --color-popover:#40251F; --color-secondary:#482820; --color-muted:#4A2E25; --color-primary:#FF9D67; --color-primary-foreground:#2A130D; --color-muted-foreground:#C2A399; --color-accent:#553126; --color-border:rgb(194 163 153 / 18%); --color-ring:#FF9D67; }
+:root[data-theme='forest'] { --color-background:#0C180D; --color-card:#172919; --color-popover:#203723; --color-secondary:#29412A; --color-muted:#2B422C; --color-primary:#A8D966; --color-primary-foreground:#14200A; --color-muted-foreground:#A2B49C; --color-accent:#344D30; --color-border:rgb(162 180 156 / 18%); --color-ring:#A8D966; }
+:root[data-theme='midnight'] { --color-background:#080B12; --color-card:#121824; --color-popover:#182131; --color-secondary:#202B3D; --color-muted:#222D40; --color-primary:#82AEFF; --color-primary-foreground:#0A1222; --color-muted-foreground:#9AA9BF; --color-accent:#293752; --color-border:rgb(154 169 191 / 18%); --color-ring:#82AEFF; }

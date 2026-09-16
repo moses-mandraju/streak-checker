@@ -3,7 +3,7 @@ import {
   deleteHabitDocument,
   updateHabitDocument,
 } from '../firebase/firestore'
-import { calculateNextStreak, todayKey } from '../utils/date'
+import { calculateNextStreak, calculateStreaksFromHistory, todayKey } from '../utils/date'
 
 export const defaultReminderSettings = {
   reminderEnabled: false,
@@ -56,4 +56,13 @@ export function deleteHabit(userId, habitId) {
 
 export function completeHabit(userId, habit) {
   return updateHabitDocument(userId, habit.id, calculateNextStreak(habit))
+}
+
+export function toggleHabitCompletionForDate(userId, habit, dateKey) {
+  if (dateKey > todayKey()) throw new Error('Future dates cannot be completed.')
+  const history = habit.completionHistory || []
+  const nextHistory = history.includes(dateKey)
+    ? history.filter((key) => key !== dateKey)
+    : [...history, dateKey]
+  return updateHabitDocument(userId, habit.id, calculateStreaksFromHistory(nextHistory))
 }

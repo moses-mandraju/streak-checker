@@ -1,11 +1,12 @@
 import { Navigate } from 'react-router-dom'
-import { CheckCircle2, Flame, ShieldCheck } from 'lucide-react'
+import { CheckCircle2, ShieldCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { signInWithGoogle } from '../firebase/auth'
 import { isFirebaseConfigured } from '../firebase/config'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/button'
 import { Card, CardContent } from '../components/ui/card'
+import HabitlyLogo from '../components/HabitlyLogo'
 
 export default function LoginPage() {
   const { user } = useAuth()
@@ -15,7 +16,7 @@ export default function LoginPage() {
   async function handleLogin() {
     try {
       await signInWithGoogle()
-      toast.success('Welcome to Streak Checker.')
+      toast.success('Welcome to Habitly.')
     } catch (error) {
       toast.error(error?.message || 'Google sign in failed.')
     }
@@ -24,17 +25,15 @@ export default function LoginPage() {
   return (
     <div className="grid min-h-screen place-items-center px-4 py-10">
       <div className="w-full max-w-5xl">
-        <div className="grid overflow-hidden rounded-lg border bg-card shadow-xl md:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid overflow-hidden rounded-2xl border bg-card shadow-xl md:grid-cols-[1.1fr_0.9fr]">
           <section className="flex flex-col justify-between bg-primary p-8 text-primary-foreground md:p-10">
             <div>
-              <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-lg bg-white/15">
-                <Flame className="h-7 w-7" />
-              </div>
+              <div className="mb-8"><HabitlyLogo compact /></div>
               <h1 className="max-w-xl text-4xl font-semibold tracking-normal md:text-5xl">
-                Streak Checker
+                Habitly
               </h1>
               <p className="mt-4 max-w-lg text-base text-primary-foreground/80">
-                Track daily habits, protect your streaks, and see your progress without clutter.
+                Build consistency, not perfection. A calmer home for the habits that matter.
               </p>
             </div>
             <div className="mt-10 grid gap-3 text-sm text-primary-foreground/85 sm:grid-cols-3">

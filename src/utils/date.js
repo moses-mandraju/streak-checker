@@ -77,3 +77,36 @@ export function calculateNextStreak(habit) {
     completionHistory: [...history, today],
   }
 }
+
+export function calculateStreaksFromHistory(completionHistory) {
+  const history = [...new Set(completionHistory || [])].sort()
+  const completed = new Set(history)
+  let longestStreak = 0
+  let runningStreak = 0
+  let previousDate = null
+
+  history.forEach((key) => {
+    const date = new Date(`${key}T00:00:00`)
+    if (previousDate && differenceInCalendarDays(date, previousDate) === 1) {
+      runningStreak += 1
+    } else {
+      runningStreak = 1
+    }
+    longestStreak = Math.max(longestStreak, runningStreak)
+    previousDate = date
+  })
+
+  let currentStreak = 0
+  let cursor = new Date()
+  while (completed.has(format(cursor, DATE_KEY))) {
+    currentStreak += 1
+    cursor = subDays(cursor, 1)
+  }
+
+  return {
+    completionHistory: history,
+    currentStreak,
+    longestStreak,
+    lastCompletedDate: history.at(-1) || '',
+  }
+}

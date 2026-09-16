@@ -9,7 +9,7 @@ const firebaseApp = initializeApp(firebaseConfig)
 const messaging = getMessaging(firebaseApp)
 
 onBackgroundMessage(messaging, (payload) => {
-  const notificationTitle = payload.notification?.title || 'Streak Checker Reminder'
+  const notificationTitle = payload.notification?.title || 'Habitly Reminder'
   const notificationOptions = {
     body: payload.notification?.body || 'Open the app to keep your streak going.',
     icon: '/favicon.svg',

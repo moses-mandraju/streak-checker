@@ -6,6 +6,7 @@ import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import HabitCard from '../components/HabitCard'
 import HabitForm from '../components/HabitForm'
+import WeekHabitList from '../components/WeekHabitList'
 import ReminderSettingsModal from '../components/ReminderSettingsModal'
 import { Button } from '../components/ui/button'
 import { Dialog } from '../components/ui/dialog'
@@ -30,6 +31,7 @@ export default function HabitsPage() {
   const [reminderDialogOpen, setReminderDialogOpen] = useState(false)
   const [selectedHabitForReminder, setSelectedHabitForReminder] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [habitView, setHabitView] = useState('tick')
 
   function openCreateDialog() {
     setEditingHabit(null)
@@ -97,6 +99,13 @@ export default function HabitsPage() {
         }
       />
 
+      <div className="mb-6 flex max-w-xs rounded-2xl border border-border bg-secondary/40 p-1" role="tablist" aria-label="Habit view">
+        <button type="button" role="tab" aria-selected={habitView === 'tick'} onClick={() => setHabitView('tick')} className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${habitView === 'tick' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>Tick</button>
+        <button type="button" role="tab" aria-selected={habitView === 'week'} onClick={() => setHabitView('week')} className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${habitView === 'week' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>Week</button>
+      </div>
+
+      {habitView === 'week' ? <p className="-mt-3 mb-5 text-sm text-muted-foreground">Your habits with their current-week progress.</p> : null}
+
       {loading ? (
         <div className="grid gap-4 lg:grid-cols-2">
           {[1, 2, 3, 4].map((item) => (
@@ -137,8 +146,7 @@ export default function HabitsPage() {
             </CardContent>
           </Card>
 
-          {/* Habit grid */}
-          <div className="grid gap-4 lg:grid-cols-2">
+          {habitView === 'week' ? <WeekHabitList habits={habits} /> : <div className="grid gap-4 lg:grid-cols-2">
             {habits.map((habit) => (
               <HabitCard
                 key={habit.id}
@@ -148,7 +156,7 @@ export default function HabitsPage() {
                 onManageReminder={() => openReminderDialog(habit)}
               />
             ))}
-          </div>
+          </div>}
         </>
       )}
 
