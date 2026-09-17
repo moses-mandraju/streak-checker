@@ -13,6 +13,7 @@ import { useAuthStore } from '../store/authStore'
 import { useHabitStore } from '../store/habitStore'
 
 import { todayKey } from '../utils/date'
+import WeeklyDashboardReport from '../components/WeeklyDashboardReport'
 
 export default function DashboardPage() {
   const user = useAuthStore((state) => state.user)
@@ -39,6 +40,10 @@ export default function DashboardPage() {
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening'
+
+  if (!loading && habits.length > 0) {
+    return <WeeklyDashboardReport habits={habits} user={user} />
+  }
 
   return (
     <>

@@ -18,6 +18,7 @@ export const defaultReminderSettings = {
 export function createHabit(userId, values) {
   return createHabitDocument(userId, {
     title: values.title.trim(),
+    category: values.category || 'consistency',
     emoji: values.emoji.trim() || '✅',
     createdDate: todayKey(),
     currentStreak: 0,
@@ -31,6 +32,7 @@ export function createHabit(userId, values) {
 export function updateHabit(userId, habitId, values) {
   return updateHabitDocument(userId, habitId, {
     title: values.title.trim(),
+    category: values.category || 'consistency',
     emoji: values.emoji.trim() || '✅',
   })
 }
