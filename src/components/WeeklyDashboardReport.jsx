@@ -1,7 +1,5 @@
 import { format, subDays } from 'date-fns'
-
 import { DATE_KEY } from '../utils/date'
-
 import { Card, CardContent } from './ui/card'
 
 function reportFor(habits, category) {
@@ -10,7 +8,7 @@ function reportFor(habits, category) {
       (habit.category || 'consistency') === category,
   )
 
-  // Always evaluate the previous 7 calendar days.
+  // Previous 7 completed days.
   // Today is intentionally excluded.
   const dates = Array.from(
     { length: 7 },
@@ -29,8 +27,6 @@ function reportFor(habits, category) {
       habit.completionHistory || [],
     )
 
-    // Every habit is evaluated against the same
-    // 7-day reporting window.
     const count = dates.filter((date) =>
       history.has(date),
     ).length
@@ -50,24 +46,402 @@ function reportFor(habits, category) {
 
   return {
     items,
-
-    // Weighted overall percentage.
-    //
-    // Example:
-    // Habit A = 6/7
-    // Habit B = 6/7
-    //
-    // Overall = 12/14 = 85.7% = 86%
     percent: possible
-      ? Math.round(
-          (completed / possible) * 100,
-        )
+      ? Math.round((completed / possible) * 100)
       : 0,
-
     completed,
     possible,
   }
 }
+
+/* -------------------------------------------------- */
+/* Animated mountain decoration                       */
+/* -------------------------------------------------- */
+
+function MountainScene({ accent, type }) {
+  const isResistance = type === 'resistance'
+
+  return (
+    <div
+      className="pointer-events-none absolute right-0 top-0 h-44 w-[58%] overflow-hidden opacity-90"
+      aria-hidden="true"
+    >
+      <svg
+        viewBox="0 0 520 190"
+        preserveAspectRatio="none"
+        className="h-full w-full"
+      >
+        <defs>
+          <linearGradient
+            id={`mountainGlow-${type}`}
+            x1="0"
+            y1="1"
+            x2="1"
+            y2="0"
+          >
+            <stop
+              offset="0%"
+              stopColor={accent}
+              stopOpacity="0"
+            />
+
+            <stop
+              offset="55%"
+              stopColor={accent}
+              stopOpacity="0.16"
+            />
+
+            <stop
+              offset="100%"
+              stopColor={accent}
+              stopOpacity="0.32"
+            />
+          </linearGradient>
+
+          <linearGradient
+            id={`mountainBack-${type}`}
+            x1="0"
+            y1="1"
+            x2="1"
+            y2="0"
+          >
+            <stop
+              offset="0%"
+              stopColor={accent}
+              stopOpacity="0.03"
+            />
+
+            <stop
+              offset="100%"
+              stopColor={accent}
+              stopOpacity="0.28"
+            />
+          </linearGradient>
+
+          <linearGradient
+            id={`mountainFront-${type}`}
+            x1="0"
+            y1="1"
+            x2="1"
+            y2="0"
+          >
+            <stop
+              offset="0%"
+              stopColor={accent}
+              stopOpacity="0.06"
+            />
+
+            <stop
+              offset="100%"
+              stopColor={accent}
+              stopOpacity="0.38"
+            />
+          </linearGradient>
+        </defs>
+
+        {/* Soft glow */}
+        <path
+          d="M190 150 L310 58 L355 91 L415 18 L520 150 Z"
+          fill={`url(#mountainGlow-${type})`}
+          className="mountain-glow"
+        />
+
+        {/* Distant mountain range */}
+        <path
+          d="
+            M170 158
+            L245 96
+            L282 119
+            L330 76
+            L370 106
+            L418 42
+            L520 137
+            L520 190
+            L170 190
+            Z
+          "
+          fill={`url(#mountainBack-${type})`}
+          className="mountain-back"
+        />
+
+        {/* Main mountain */}
+        <path
+          d="
+            M250 172
+            L338 87
+            L377 122
+            L430 25
+            L520 128
+            L520 190
+            L250 190
+            Z
+          "
+          fill={`url(#mountainFront-${type})`}
+          className="mountain-front"
+        />
+
+        {/* Snow/light peak */}
+        <path
+          d="
+            M430 25
+            L415 53
+            L427 48
+            L438 61
+            L449 49
+            L462 65
+            Z
+          "
+          fill={accent}
+          opacity="0.45"
+          className="mountain-snow"
+        />
+
+        {/* Small foreground ridge */}
+        <path
+          d="
+            M205 184
+            L290 133
+            L325 150
+            L365 116
+            L405 151
+            L452 116
+            L520 165
+            L520 190
+            L205 190
+            Z
+          "
+          fill={`url(#mountainGlow-${type})`}
+          opacity="0.55"
+          className="mountain-ridge"
+        />
+
+        {/* Tiny floating glow points */}
+        <circle
+          cx="383"
+          cy="72"
+          r="2"
+          fill={accent}
+          opacity="0.45"
+          className="mountain-particle particle-one"
+        />
+
+        <circle
+          cx="456"
+          cy="94"
+          r="1.8"
+          fill={accent}
+          opacity="0.35"
+          className="mountain-particle particle-two"
+        />
+
+        <circle
+          cx="344"
+          cy="103"
+          r="1.5"
+          fill={accent}
+          opacity="0.3"
+          className="mountain-particle particle-three"
+        />
+      </svg>
+
+      {/* Fade into card */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `linear-gradient(
+            90deg,
+            rgba(8, 24, 31, 1) 0%,
+            rgba(8, 24, 31, 0.65) 25%,
+            rgba(8, 24, 31, 0.05) 75%,
+            rgba(8, 24, 31, 0) 100%
+          )`,
+        }}
+      />
+
+      <style>{`
+        .mountain-back {
+          animation: mountainDriftBack 9s ease-in-out infinite alternate;
+          transform-origin: center;
+        }
+
+        .mountain-front {
+          animation: mountainDriftFront 7s ease-in-out infinite alternate;
+          transform-origin: center;
+        }
+
+        .mountain-glow {
+          animation: mountainGlow 5s ease-in-out infinite alternate;
+        }
+
+        .mountain-ridge {
+          animation: mountainRidge 8s ease-in-out infinite alternate;
+        }
+
+        .mountain-snow {
+          animation: mountainSnow 4s ease-in-out infinite alternate;
+        }
+
+        .mountain-particle {
+          animation: mountainParticle 4s ease-in-out infinite;
+        }
+
+        .particle-two {
+          animation-delay: 1.2s;
+        }
+
+        .particle-three {
+          animation-delay: 2.1s;
+        }
+
+        @keyframes mountainDriftBack {
+          from {
+            transform: translateX(0) scale(1);
+          }
+
+          to {
+            transform: translateX(-7px) scale(1.015);
+          }
+        }
+
+        @keyframes mountainDriftFront {
+          from {
+            transform: translateX(0) translateY(0);
+          }
+
+          to {
+            transform: translateX(-10px) translateY(-3px);
+          }
+        }
+
+        @keyframes mountainGlow {
+          from {
+            opacity: 0.45;
+          }
+
+          to {
+            opacity: 0.9;
+          }
+        }
+
+        @keyframes mountainRidge {
+          from {
+            transform: translateX(0);
+          }
+
+          to {
+            transform: translateX(8px);
+          }
+        }
+
+        @keyframes mountainSnow {
+          from {
+            opacity: 0.25;
+          }
+
+          to {
+            opacity: 0.55;
+          }
+        }
+
+        @keyframes mountainParticle {
+          0% {
+            transform: translateY(5px);
+            opacity: 0;
+          }
+
+          30% {
+            opacity: 0.45;
+          }
+
+          70% {
+            opacity: 0.25;
+          }
+
+          100% {
+            transform: translateY(-12px);
+            opacity: 0;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .mountain-back,
+          .mountain-front,
+          .mountain-glow,
+          .mountain-ridge,
+          .mountain-snow,
+          .mountain-particle {
+            animation: none;
+          }
+        }
+      `}</style>
+    </div>
+  )
+}
+
+/* -------------------------------------------------- */
+/* Circular progress                                  */
+/* -------------------------------------------------- */
+
+function ProgressRing({
+  percent,
+  accent,
+  completed,
+  possible,
+}) {
+  const radius = 54
+  const circumference = 2 * Math.PI * radius
+  const progress =
+    circumference * (percent / 100)
+
+  return (
+    <div className="relative h-40 w-40 shrink-0">
+      <svg
+        className="h-full w-full -rotate-90"
+        viewBox="0 0 128 128"
+      >
+        <circle
+          cx="64"
+          cy="64"
+          r={radius}
+          fill="none"
+          stroke="rgba(255,255,255,0.07)"
+          strokeWidth="10"
+        />
+
+        {percent > 0 && (
+          <circle
+            cx="64"
+            cy="64"
+            r={radius}
+            fill="none"
+            stroke={accent}
+            strokeWidth="10"
+            strokeLinecap="round"
+            strokeDasharray={`${progress} ${circumference}`}
+            className="transition-all duration-700"
+          />
+        )}
+      </svg>
+
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span
+          className="text-3xl font-bold tabular-nums"
+          style={{ color: accent }}
+        >
+          {percent}%
+        </span>
+
+        <span className="mt-1 text-xs text-muted-foreground">
+          {completed} of {possible} days
+        </span>
+      </div>
+    </div>
+  )
+}
+
+/* -------------------------------------------------- */
+/* Category card                                      */
+/* -------------------------------------------------- */
 
 function CategoryReport({
   icon,
@@ -76,87 +450,259 @@ function CategoryReport({
   report,
   accent,
   emptyMessage,
+  isResistance,
 }) {
-  return (
-    <Card className="overflow-hidden">
-      <CardContent className="p-5">
+  const missed = Math.max(
+    report.possible - report.completed,
+    0,
+  )
 
-        <div className="flex items-start justify-between">
-          <div>
+  return (
+    <Card
+      className="relative overflow-hidden"
+      style={{
+        borderColor: `${accent}35`,
+        background: `
+          radial-gradient(
+            circle at 100% 0%,
+            ${accent}08 0%,
+            transparent 45%
+          )
+        `,
+      }}
+    >
+      {/* Animated mountain background */}
+      {report.items.length > 0 && (
+        <MountainScene
+          accent={accent}
+          type={
+            isResistance
+              ? 'resistance'
+              : 'consistency'
+          }
+        />
+      )}
+
+      <CardContent className="relative z-10 p-5 sm:p-6">
+
+        {/* Header */}
+        <div className="relative z-10 flex items-start gap-3">
+          <div
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+            style={{
+              backgroundColor: `${accent}18`,
+              boxShadow: `0 0 24px ${accent}12`,
+            }}
+          >
+            <span className="text-xl">
+              {icon}
+            </span>
+          </div>
+
+          <div className="min-w-0">
             <p className="text-sm font-semibold">
-              {icon} {title}
+              {title}
             </p>
 
             <p className="mt-1 text-xs text-muted-foreground">
               {detail}
             </p>
           </div>
-
-          <p
-            className="text-3xl font-bold tabular-nums"
-            style={{
-              color: accent,
-            }}
-          >
-            {report.percent}%
-          </p>
         </div>
 
-        <div className="mt-5 h-2 overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full transition-all"
-            style={{
-              width: `${report.percent}%`,
-              backgroundColor: accent,
-            }}
-          />
-        </div>
+        {report.items.length ? (
+          <>
+            {/* Main stats */}
+            <div className="relative z-10 mt-6 flex flex-col items-center gap-5 sm:flex-row">
 
-        <div className="mt-5 space-y-3">
-          {report.items.length ? (
-            report.items.map(
-              ({
-                habit,
-                completed,
-                possible,
-                percent,
-              }) => (
-                <div
-                  className="flex items-center justify-between gap-3"
-                  key={habit.id}
-                >
-                  <div className="min-w-0">
-                    <span className="block truncate text-sm">
-                      {habit.emoji} {habit.title}
-                    </span>
+              <ProgressRing
+                percent={report.percent}
+                accent={accent}
+                completed={report.completed}
+                possible={report.possible}
+              />
 
-                    <span className="text-xs text-muted-foreground">
-                      {completed}/{possible} days
-                    </span>
-                  </div>
+              <div className="flex flex-1 flex-col gap-4">
 
-                  <span
-                    className="shrink-0 text-sm font-semibold tabular-nums"
+                <div className="flex items-center gap-3">
+                  <div
+                    className="flex h-9 w-9 items-center justify-center rounded-full"
                     style={{
+                      backgroundColor: `${accent}18`,
                       color: accent,
                     }}
                   >
-                    {percent}%
-                  </span>
+                    ✓
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-semibold">
+                      {report.completed}
+                    </p>
+
+                    <p className="text-xs text-muted-foreground">
+                      {isResistance
+                        ? 'Days resisted'
+                        : 'Days completed'}
+                    </p>
+                  </div>
                 </div>
-              ),
-            )
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              {emptyMessage}
-            </p>
-          )}
-        </div>
+
+                <div className="flex items-center gap-3">
+                  <div
+                    className="flex h-9 w-9 items-center justify-center rounded-full"
+                    style={{
+                      backgroundColor: `${accent}10`,
+                      color: accent,
+                    }}
+                  >
+                    ○
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-semibold">
+                      {missed}
+                    </p>
+
+                    <p className="text-xs text-muted-foreground">
+                      {isResistance
+                        ? 'Days not resisted'
+                        : 'Days missed'}
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Premium message */}
+              <div
+                className="hidden rounded-2xl px-4 py-3 text-right sm:block"
+                style={{
+                  backgroundColor: `${accent}0D`,
+                }}
+              >
+                <p
+                  className="text-sm font-semibold"
+                  style={{ color: accent }}
+                >
+                  {report.percent >= 80
+                    ? 'Great progress!'
+                    : report.percent >= 50
+                      ? 'Keep going!'
+                      : 'Every day counts.'}
+                </p>
+
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {isResistance
+                    ? 'Stay in control.'
+                    : 'Small steps, big progress.'}
+                </p>
+              </div>
+
+            </div>
+
+            {/* Individual habits */}
+            <div
+              className="relative z-10 mt-6 border-t pt-4"
+              style={{
+                borderColor: `${accent}20`,
+              }}
+            >
+              <div className="space-y-1">
+
+                {report.items.map(
+                  ({
+                    habit,
+                    completed,
+                    possible,
+                    percent,
+                  }) => (
+                    <div
+                      key={habit.id}
+                      className="rounded-xl px-2 py-3 transition-colors hover:bg-white/[0.025]"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+
+                        <div className="min-w-0">
+                          <span className="block truncate text-sm font-medium">
+                            {habit.emoji}{' '}
+                            {habit.title}
+                          </span>
+
+                          <span className="text-xs text-muted-foreground">
+                            {completed}/{possible} days
+                          </span>
+                        </div>
+
+                        <span
+                          className="shrink-0 text-sm font-semibold tabular-nums"
+                          style={{
+                            color: accent,
+                          }}
+                        >
+                          {percent}%
+                        </span>
+
+                      </div>
+
+                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${percent}%`,
+                            background: `linear-gradient(
+                              90deg,
+                              ${accent},
+                              ${accent}CC
+                            )`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ),
+                )}
+
+              </div>
+            </div>
+          </>
+        ) : (
+          <div
+            className="relative z-10 mt-6 flex items-center gap-4 rounded-2xl border p-4"
+            style={{
+              borderColor: `${accent}20`,
+              backgroundColor: `${accent}08`,
+            }}
+          >
+            <div
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl"
+              style={{
+                backgroundColor: `${accent}15`,
+              }}
+            >
+              {icon}
+            </div>
+
+            <div>
+              <p className="text-sm font-semibold">
+                {emptyMessage}
+              </p>
+
+              <p className="mt-1 text-xs text-muted-foreground">
+                Add a positive habit to start tracking
+                your progress.
+              </p>
+            </div>
+          </div>
+        )}
 
       </CardContent>
     </Card>
   )
 }
+
+/* -------------------------------------------------- */
+/* Dashboard                                          */
+/* -------------------------------------------------- */
 
 export default function WeeklyDashboardReport({
   habits,
@@ -193,15 +739,16 @@ export default function WeeklyDashboardReport({
         </p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-5 lg:grid-cols-2">
 
         <CategoryReport
           icon="🌱"
           title="Overall Consistency"
           detail="Positive habits completed over the past 7 days"
           report={consistency}
-          accent="#7EE2B0"
+          accent="#35D399"
           emptyMessage="No consistency habits yet."
+          isResistance={false}
         />
 
         <CategoryReport
@@ -209,8 +756,9 @@ export default function WeeklyDashboardReport({
           title="Overall Resistance"
           detail="Unwanted habits successfully resisted over the past 7 days"
           report={resistance}
-          accent="#FB8A72"
+          accent="#FB806F"
           emptyMessage="No resistance habits yet."
+          isResistance
         />
 
       </div>
