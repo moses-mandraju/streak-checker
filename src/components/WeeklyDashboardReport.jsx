@@ -63,7 +63,7 @@ function MountainScene({ accent, type }) {
 
   return (
     <div
-      className="pointer-events-none absolute right-0 top-0 h-44 w-[58%] overflow-hidden opacity-90"
+      className="pointer-events-none absolute right-0 top-0 h-28 w-[48%] overflow-hidden opacity-40 sm:h-44 sm:w-[58%] sm:opacity-90"
       aria-hidden="true"
     >
       <svg
@@ -394,7 +394,7 @@ function ProgressRing({
     circumference * (percent / 100)
 
   return (
-    <div className="relative h-40 w-40 shrink-0">
+    <div className="relative h-28 w-28 shrink-0 sm:h-40 sm:w-40">
       <svg
         className="h-full w-full -rotate-90"
         viewBox="0 0 128 128"
@@ -425,13 +425,13 @@ function ProgressRing({
 
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span
-          className="text-3xl font-bold tabular-nums"
+          className="text-2xl font-bold tabular-nums sm:text-3xl"
           style={{ color: accent }}
         >
           {percent}%
         </span>
 
-        <span className="mt-1 text-xs text-muted-foreground">
+        <span className="mt-0.5 text-[10px] text-muted-foreground sm:mt-1 sm:text-xs">
           {completed} of {possible} days
         </span>
       </div>
@@ -483,18 +483,18 @@ function CategoryReport({
         />
       )}
 
-      <CardContent className="relative z-10 p-5 sm:p-6">
+      <CardContent className="relative z-10 p-4 sm:p-6">
 
         {/* Header */}
         <div className="relative z-10 flex items-start gap-3">
           <div
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11"
             style={{
               backgroundColor: `${accent}18`,
               boxShadow: `0 0 24px ${accent}12`,
             }}
           >
-            <span className="text-xl">
+            <span className="text-lg sm:text-xl">
               {icon}
             </span>
           </div>
@@ -513,7 +513,7 @@ function CategoryReport({
         {report.items.length ? (
           <>
             {/* Main stats */}
-            <div className="relative z-10 mt-6 flex flex-col items-center gap-5 sm:flex-row">
+            <div className="relative z-10 mt-4 flex items-center gap-4 sm:mt-6 sm:flex-row sm:gap-5">
 
               <ProgressRing
                 percent={report.percent}
@@ -522,11 +522,11 @@ function CategoryReport({
                 possible={report.possible}
               />
 
-              <div className="flex flex-1 flex-col gap-4">
+              <div className="grid min-w-0 flex-1 grid-cols-2 gap-3 sm:flex sm:flex-col sm:gap-4">
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                   <div
-                    className="flex h-9 w-9 items-center justify-center rounded-full"
+                    className="flex h-8 w-8 items-center justify-center rounded-full sm:h-9 sm:w-9"
                     style={{
                       backgroundColor: `${accent}18`,
                       color: accent,
@@ -548,9 +548,9 @@ function CategoryReport({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                   <div
-                    className="flex h-9 w-9 items-center justify-center rounded-full"
+                    className="flex h-8 w-8 items-center justify-center rounded-full sm:h-9 sm:w-9"
                     style={{
                       backgroundColor: `${accent}10`,
                       color: accent,
@@ -603,7 +603,7 @@ function CategoryReport({
 
             {/* Individual habits */}
             <div
-              className="relative z-10 mt-6 border-t pt-4"
+              className="relative z-10 mt-4 border-t pt-3 sm:mt-6 sm:pt-4"
               style={{
                 borderColor: `${accent}20`,
               }}
@@ -619,7 +619,7 @@ function CategoryReport({
                   }) => (
                     <div
                       key={habit.id}
-                      className="rounded-xl px-2 py-3 transition-colors hover:bg-white/[0.025]"
+                      className="rounded-xl px-1 py-2 transition-colors hover:bg-white/[0.025] sm:px-2 sm:py-3"
                     >
                       <div className="flex items-center justify-between gap-3">
 
@@ -667,7 +667,7 @@ function CategoryReport({
           </>
         ) : (
           <div
-            className="relative z-10 mt-6 flex items-center gap-4 rounded-2xl border p-4"
+            className="relative z-10 mt-4 flex items-center gap-3 rounded-2xl border p-3 sm:mt-6 sm:gap-4 sm:p-4"
             style={{
               borderColor: `${accent}20`,
               backgroundColor: `${accent}08`,

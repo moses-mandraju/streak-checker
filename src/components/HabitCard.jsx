@@ -15,6 +15,7 @@ import {
 } from '../services/habitService'
 
 import { todayKey } from '../utils/date'
+import { playCompletionSound } from '../utils/completionSound'
 
 import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
@@ -66,6 +67,7 @@ export default function HabitCard({
   async function handleComplete() {
     try {
       await completeHabit(userId, habit)
+      playCompletionSound()
 
       toast.success('Habit completed.')
     } catch (error) {
@@ -96,11 +98,17 @@ export default function HabitCard({
     setUpdatingDate(dateKey)
 
     try {
+      const wasCompleted = (habit.completionHistory || []).includes(dateKey)
+
       await toggleHabitCompletionForDate(
         userId,
         habit,
         dateKey,
       )
+
+      if (!wasCompleted) {
+        playCompletionSound()
+      }
     } catch (error) {
       toast.error(
         error?.message ||
