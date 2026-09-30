@@ -1,6 +1,7 @@
 import { format, subDays } from 'date-fns'
 import { DATE_KEY } from '../utils/date'
 import { Card, CardContent } from './ui/card'
+import TodaysTodo from './TodaysTodo'
 
 function reportFor(habits, category) {
   const selected = habits.filter(
@@ -8,13 +9,15 @@ function reportFor(habits, category) {
       (habit.category || 'consistency') === category,
   )
 
-  // Previous 7 completed days.
-  // Today is intentionally excluded.
+  // Consistency evaluates today + the previous 6 days.
+  // Resistance evaluates the previous 7 completed days,
+  // excluding today so the user still has the full day to resist.
+  const offset = category === 'consistency' ? 0 : 1
   const dates = Array.from(
     { length: 7 },
     (_, index) =>
       format(
-        subDays(new Date(), index + 1),
+        subDays(new Date(), index + offset),
         DATE_KEY,
       ),
   ).reverse()
@@ -23,13 +26,8 @@ function reportFor(habits, category) {
   let completed = 0
 
   const items = selected.map((habit) => {
-    const history = new Set(
-      habit.completionHistory || [],
-    )
-
-    const count = dates.filter((date) =>
-      history.has(date),
-    ).length
+    const history = new Set(habit.completionHistory || [])
+    const count = dates.filter((date) => history.has(date)).length
 
     possible += dates.length
     completed += count
@@ -38,17 +36,13 @@ function reportFor(habits, category) {
       habit,
       completed: count,
       possible: dates.length,
-      percent: Math.round(
-        (count / dates.length) * 100,
-      ),
+      percent: Math.round((count / dates.length) * 100),
     }
   })
 
   return {
     items,
-    percent: possible
-      ? Math.round((completed / possible) * 100)
-      : 0,
+    percent: possible ? Math.round((completed / possible) * 100) : 0,
     completed,
     possible,
   }
@@ -59,11 +53,9 @@ function reportFor(habits, category) {
 /* -------------------------------------------------- */
 
 function MountainScene({ accent, type }) {
-  const isResistance = type === 'resistance'
-
   return (
     <div
-      className="pointer-events-none absolute right-0 top-0 h-28 w-[48%] overflow-hidden opacity-40 sm:h-44 sm:w-[58%] sm:opacity-90"
+      className="pointer-events-none absolute right-0 top-0 h-20 w-[40%] overflow-hidden opacity-25 sm:h-44 sm:w-[58%] sm:opacity-90"
       aria-hidden="true"
     >
       <svg
@@ -394,7 +386,7 @@ function ProgressRing({
     circumference * (percent / 100)
 
   return (
-    <div className="relative h-28 w-28 shrink-0 sm:h-40 sm:w-40">
+    <div className="relative h-24 w-24 shrink-0 sm:h-40 sm:w-40">
       <svg
         className="h-full w-full -rotate-90"
         viewBox="0 0 128 128"
@@ -483,7 +475,7 @@ function CategoryReport({
         />
       )}
 
-      <CardContent className="relative z-10 p-4 sm:p-6">
+      <CardContent className="relative z-10 p-3.5 sm:p-6">
 
         {/* Header */}
         <div className="relative z-10 flex items-start gap-3">
@@ -513,7 +505,7 @@ function CategoryReport({
         {report.items.length ? (
           <>
             {/* Main stats */}
-            <div className="relative z-10 mt-4 flex items-center gap-4 sm:mt-6 sm:flex-row sm:gap-5">
+            <div className="relative z-10 mt-3 flex items-center gap-3 sm:mt-6 sm:flex-row sm:gap-5">
 
               <ProgressRing
                 percent={report.percent}
@@ -734,10 +726,11 @@ export default function WeeklyDashboardReport({
         </h1>
 
         <p className="mt-2 text-sm text-muted-foreground">
-          Your performance across the last seven
-          completed days.
+          Your performance over the past 7 days.
         </p>
       </div>
+
+      <TodaysTodo />
 
       <div className="grid gap-5 lg:grid-cols-2">
 

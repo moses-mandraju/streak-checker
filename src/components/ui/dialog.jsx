@@ -7,7 +7,7 @@ export function Dialog({ open, onOpenChange, title, children }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-lg border bg-card p-5 text-card-foreground shadow-xl">
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg border bg-card p-5 text-card-foreground shadow-xl">
         <div className="mb-4 flex items-center justify-between gap-4">
           <h2 className="text-lg font-semibold">{title}</h2>
           <Button

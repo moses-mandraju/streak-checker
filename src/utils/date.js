@@ -173,3 +173,15 @@ export function calculateStreaksFromHistory(completionHistory) {
     lastCompletedDate: history.at(-1) || '',
   }
 }
+
+export function getCurrentStreak(habit) {
+  return calculateStreaksFromHistory(
+    habit?.completionHistory || [],
+  ).currentStreak
+}
+
+export function getLongestStreak(habit) {
+  return calculateStreaksFromHistory(
+    habit?.completionHistory || [],
+  ).longestStreak
+}

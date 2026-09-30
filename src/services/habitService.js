@@ -104,15 +104,13 @@ export function deleteHabit(userId, habitId) {
   )
 }
 
-export function completeHabit(userId, habit) {
-  return updateHabitDocument(
-    userId,
-    habit.id,
-    calculateNextStreak(habit),
-  )
+export async function completeHabit(userId, habit) {
+  const updates = calculateNextStreak(habit)
+  await updateHabitDocument(userId, habit.id, updates)
+  return updates
 }
 
-export function toggleHabitCompletionForDate(
+export async function toggleHabitCompletionForDate(
   userId,
   habit,
   dateKey,
@@ -132,9 +130,7 @@ export function toggleHabitCompletionForDate(
       )
     : [...history, dateKey]
 
-  return updateHabitDocument(
-    userId,
-    habit.id,
-    calculateStreaksFromHistory(nextHistory),
-  )
+  const updates = calculateStreaksFromHistory(nextHistory)
+  await updateHabitDocument(userId, habit.id, updates)
+  return updates
 }

@@ -14,6 +14,7 @@ import { logoutUser } from '../firebase/auth'
 import { useAuthStore } from '../store/authStore'
 import { useThemeStore } from '../store/themeStore'
 import { useHabits } from '../hooks/useHabits'
+import { useTasks } from '../hooks/useTasks'
 import { usePwaInstall } from '../hooks/usePwaInstall'
 import { Button } from '../components/ui/button'
 import { cn } from '../utils/cn'
@@ -31,6 +32,7 @@ export default function AppLayout() {
   const toggleTheme = useThemeStore((state) => state.toggleTheme)
   const { canInstall, promptInstall } = usePwaInstall()
   useHabits(user?.uid)
+  useTasks(user?.uid)
 
   async function handleLogout() {
     sessionStorage.removeItem('installBannerDismissed')

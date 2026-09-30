@@ -6,7 +6,7 @@ import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import { Card, CardContent } from '../components/ui/card'
 import { useHabitStore } from '../store/habitStore'
-import { getCompletionStats, DATE_KEY } from '../utils/date'
+import { getCompletionStats, DATE_KEY, getCurrentStreak, getLongestStreak } from '../utils/date'
 
 const DAYS = 14
 
@@ -197,7 +197,7 @@ const HabitCharts = memo(function HabitCharts({ habit, stats, chartData, chartRe
           <div className="flex-1 min-w-0">
             <h2 className="font-semibold truncate">{habit.title}</h2>
             <p className="text-xs text-muted-foreground">
-              Current streak: {habit.currentStreak || 0}d &nbsp;·&nbsp;
+              Current streak: {getCurrentStreak(habit)}d &nbsp;·&nbsp;
               Longest: {habit.longestStreak || 0}d &nbsp;·&nbsp;
               Completion: {stats.completionPercentage}%
             </p>
@@ -206,8 +206,8 @@ const HabitCharts = memo(function HabitCharts({ habit, stats, chartData, chartRe
 
         {/* Metric tiles */}
         <div className="mb-5 grid grid-cols-4 gap-2">
-          <Metric label="Current streak" value={`${habit.currentStreak || 0}d`} />
-          <Metric label="Longest streak" value={`${habit.longestStreak || 0}d`} />
+          <Metric label="Current streak" value={`${getCurrentStreak(habit)}d`} />
+          <Metric label="Longest streak" value={`${getLongestStreak(habit)}d`} />
           <Metric label="Total days" value={stats.totalCompletedDays} />
           <Metric label="Completion" value={`${stats.completionPercentage}%`} />
         </div>

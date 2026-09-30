@@ -57,3 +57,52 @@ export function deleteHabitDocument(userId, habitId) {
   assertFirestoreReady()
   return deleteDoc(habitDocument(userId, habitId))
 }
+
+
+export function tasksCollection(userId) {
+  assertFirestoreReady()
+  return collection(db, 'users', userId, 'tasks')
+}
+
+export function taskDocument(userId, taskId) {
+  assertFirestoreReady()
+  return doc(db, 'users', userId, 'tasks', taskId)
+}
+
+export function subscribeToTasks(userId, onData, onError) {
+  if (!isFirebaseConfigured || !db) {
+    onData([])
+    return () => {}
+  }
+
+  const tasksQuery = query(
+    tasksCollection(userId),
+    orderBy('dueDate', 'asc'),
+  )
+
+  return onSnapshot(
+    tasksQuery,
+    (snapshot) => {
+      onData(snapshot.docs.map((taskDoc) => ({
+        id: taskDoc.id,
+        ...taskDoc.data(),
+      })))
+    },
+    onError,
+  )
+}
+
+export function createTaskDocument(userId, task) {
+  assertFirestoreReady()
+  return addDoc(tasksCollection(userId), task)
+}
+
+export function updateTaskDocument(userId, taskId, updates) {
+  assertFirestoreReady()
+  return updateDoc(taskDocument(userId, taskId), updates)
+}
+
+export function deleteTaskDocument(userId, taskId) {
+  assertFirestoreReady()
+  return deleteDoc(taskDocument(userId, taskId))
+}
