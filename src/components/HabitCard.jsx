@@ -5,7 +5,7 @@ import {
 
 import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
-import { getCurrentStreak } from '../utils/date'
+import { getCurrentStreak, getStreakUnit } from '../utils/date'
 
 const accents = [
   '#35D399',
@@ -31,6 +31,7 @@ export default function HabitCard({
   const isResistance = habit.category === 'resistance'
   const accent = habitAccent(habit)
   const streak = getCurrentStreak(habit)
+  const streakUnit = getStreakUnit(habit)
   const totalCompletedDays = (habit.completionHistory || []).length
 
   return (
@@ -59,7 +60,7 @@ export default function HabitCard({
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Flame className="h-3.5 w-3.5" style={{ color: accent }} />
-                {streak} day streak
+                {streak} {streakUnit} streak
               </span>
               <span>
                 {totalCompletedDays}{' '}

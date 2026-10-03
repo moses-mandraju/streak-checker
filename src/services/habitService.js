@@ -7,8 +7,10 @@ import {
 import {
   calculateNextStreak,
   calculateStreaksFromHistory,
+  getCurrentStreak,
   todayKey,
 } from '../utils/date'
+import { getReachedStreakMilestone } from '../utils/streak-milestones'
 
 export const defaultReminderSettings = {
   reminderEnabled: false,
@@ -29,6 +31,10 @@ export function createHabit(userId, values) {
     category:
       values.category || 'consistency',
 
+    frequencyType: values.frequencyType || 'daily',
+    weeklyTarget: Number(values.weeklyTarget) || 3,
+    scheduledDays: values.scheduledDays || [],
+
     emoji:
       values.emoji.trim() || '✅',
 
@@ -39,6 +45,7 @@ export function createHabit(userId, values) {
     lastCompletedDate: '',
 
     completionHistory: [],
+    celebratedMilestones: [],
 
     ...defaultReminderSettings,
   })
@@ -54,6 +61,10 @@ export function updateHabit(
 
     category:
       values.category || 'consistency',
+
+    frequencyType: values.frequencyType || 'daily',
+    weeklyTarget: Number(values.weeklyTarget) || 3,
+    scheduledDays: values.scheduledDays || [],
 
     emoji:
       values.emoji.trim() || '✅',
@@ -105,9 +116,22 @@ export function deleteHabit(userId, habitId) {
 }
 
 export async function completeHabit(userId, habit) {
+  const previousStreak = getCurrentStreak(habit)
   const updates = calculateNextStreak(habit)
+  const milestoneReached = getReachedStreakMilestone(
+    habit,
+    previousStreak,
+    updates.currentStreak,
+  )
+
+  if (milestoneReached) {
+    updates.celebratedMilestones = [
+      ...new Set([...(habit.celebratedMilestones || []).map(Number), milestoneReached]),
+    ]
+  }
+
   await updateHabitDocument(userId, habit.id, updates)
-  return updates
+  return { ...updates, milestoneReached }
 }
 
 export async function toggleHabitCompletionForDate(
@@ -124,13 +148,31 @@ export async function toggleHabitCompletionForDate(
   const history =
     habit.completionHistory || []
 
-  const nextHistory = history.includes(dateKey)
+  const wasCompleted = history.includes(dateKey)
+  const nextHistory = wasCompleted
     ? history.filter(
         (key) => key !== dateKey,
       )
     : [...history, dateKey]
 
-  const updates = calculateStreaksFromHistory(nextHistory)
+  const previousStreak = getCurrentStreak(habit)
+  const updates = calculateStreaksFromHistory(nextHistory, habit)
+  const milestoneReached = wasCompleted
+    ? null
+    : getReachedStreakMilestone(
+        habit,
+        previousStreak,
+        updates.currentStreak,
+        dateKey,
+        todayKey(),
+      )
+
+  if (milestoneReached) {
+    updates.celebratedMilestones = [
+      ...new Set([...(habit.celebratedMilestones || []).map(Number), milestoneReached]),
+    ]
+  }
+
   await updateHabitDocument(userId, habit.id, updates)
-  return updates
+  return { ...updates, milestoneReached }
 }

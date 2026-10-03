@@ -30,6 +30,9 @@ users
       habitId
         title
         emoji
+        frequencyType
+        weeklyTarget
+        scheduledDays
         currentStreak
         longestStreak
         createdDate

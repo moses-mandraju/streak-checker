@@ -6,9 +6,15 @@ import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import { Card, CardContent } from '../components/ui/card'
 import { useHabitStore } from '../store/habitStore'
-import { getCompletionStats, DATE_KEY, getCurrentStreak, getLongestStreak } from '../utils/date'
+import { getCompletionStats, DATE_KEY, getCurrentStreak, getFrequencyType, getLongestStreak, getStreakUnit } from '../utils/date'
 
 const DAYS = 14
+
+function formatStreak(value, habit) {
+  if (getFrequencyType(habit) === 'daily') return `${value}d`
+  const unit = getStreakUnit(habit)
+  return `${value} ${unit}${value === 1 ? '' : 's'}`
+}
 
 function getLast14Days() {
   return Array.from({ length: DAYS }, (_, i) => {
@@ -30,6 +36,9 @@ const HabitCharts = memo(function HabitCharts({ habit, stats, chartData, chartRe
   const lineRef = useRef(null)
   const barChart = useRef(null)
   const lineChart = useRef(null)
+  const longestStreak = getFrequencyType(habit) === 'daily'
+    ? habit.longestStreak || 0
+    : getLongestStreak(habit)
 
   useEffect(() => {
     if (typeof window === 'undefined' || !window.Chart || !chartReady || !chartData) return
@@ -197,8 +206,8 @@ const HabitCharts = memo(function HabitCharts({ habit, stats, chartData, chartRe
           <div className="flex-1 min-w-0">
             <h2 className="font-semibold truncate">{habit.title}</h2>
             <p className="text-xs text-muted-foreground">
-              Current streak: {getCurrentStreak(habit)}d &nbsp;·&nbsp;
-              Longest: {habit.longestStreak || 0}d &nbsp;·&nbsp;
+              Current streak: {formatStreak(getCurrentStreak(habit), habit)} &nbsp;·&nbsp;
+              Longest: {formatStreak(longestStreak, habit)} &nbsp;·&nbsp;
               Completion: {stats.completionPercentage}%
             </p>
           </div>
@@ -206,8 +215,8 @@ const HabitCharts = memo(function HabitCharts({ habit, stats, chartData, chartRe
 
         {/* Metric tiles */}
         <div className="mb-5 grid grid-cols-4 gap-2">
-          <Metric label="Current streak" value={`${getCurrentStreak(habit)}d`} />
-          <Metric label="Longest streak" value={`${getLongestStreak(habit)}d`} />
+          <Metric label="Current streak" value={formatStreak(getCurrentStreak(habit), habit)} />
+          <Metric label="Longest streak" value={formatStreak(longestStreak, habit)} />
           <Metric label="Total days" value={stats.totalCompletedDays} />
           <Metric label="Completion" value={`${stats.completionPercentage}%`} />
         </div>

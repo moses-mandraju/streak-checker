@@ -17,7 +17,7 @@ import {
   deleteHabit,
   toggleHabitCompletionForDate,
 } from '../services/habitService'
-import { todayKey, getCurrentStreak, getLongestStreak, calculateStreaksFromHistory } from '../utils/date'
+import { todayKey, getCurrentStreak, getFrequencyType, getLongestStreak, getStreakUnit, calculateStreaksFromHistory } from '../utils/date'
 import { playCompletionSound } from '../utils/completionSound'
 import { useHabitStore } from '../store/habitStore'
 import { Button } from './ui/button'
@@ -33,6 +33,14 @@ function habitAccent(habit) {
   return accents[
     (habit.title || '').split('').reduce((sum, char) => sum + char.charCodeAt(0), 0) % accents.length
   ]
+}
+
+function celebrateMilestone(milestone) {
+  if (!milestone) return
+  toast.success(`${milestone}-day streak milestone!`, {
+    duration: 3500,
+    icon: '✨',
+  })
 }
 
 export default function HabitDetailDialog({
@@ -64,7 +72,9 @@ export default function HabitDetailDialog({
   const completedToday = (activeHabit.completionHistory || []).includes(todayKey())
   const currentStreak = getCurrentStreak(activeHabit)
   const longestStreak = getLongestStreak(activeHabit)
+  const streakUnit = getStreakUnit(activeHabit)
   const totalCompletedDays = (activeHabit.completionHistory || []).length
+  const isDailyHabit = getFrequencyType(activeHabit) === 'daily'
   const habitIndex = habits.findIndex((item) => item.id === activeHabit.id)
   const hasHabitNavigation = habits.length > 1 && habitIndex >= 0
 
@@ -83,7 +93,7 @@ export default function HabitDetailDialog({
     const nextHistory = history.includes(today)
       ? history
       : [...history, today]
-    const optimisticUpdates = calculateStreaksFromHistory(nextHistory)
+    const optimisticUpdates = calculateStreaksFromHistory(nextHistory, activeHabit)
 
     // Update the UI immediately. Do not wait for Firestore.
     setLocalHabit((current) => ({ ...current, ...optimisticUpdates }))
@@ -91,9 +101,15 @@ export default function HabitDetailDialog({
     setBusy(true)
 
     try {
-      await completeHabit(userId, activeHabit)
+      const { milestoneReached, ...completionUpdates } = await completeHabit(userId, activeHabit)
+      setLocalHabit((current) => ({ ...current, ...completionUpdates }))
+      updateHabitInStore(activeHabit.id, completionUpdates)
       playCompletionSound()
-      toast.success(isResistance ? 'Resistance logged.' : 'Habit completed.')
+      if (milestoneReached) {
+        celebrateMilestone(milestoneReached)
+      } else {
+        toast.success(isResistance ? 'Resistance logged.' : 'Habit completed.')
+      }
     } catch (error) {
       // Roll back the optimistic update if persistence fails.
       setLocalHabit(previousHabit)
@@ -118,7 +134,7 @@ export default function HabitDetailDialog({
     const nextHistory = wasCompleted
       ? history.filter((key) => key !== dateKey)
       : [...history, dateKey]
-    const optimisticUpdates = calculateStreaksFromHistory(nextHistory)
+    const optimisticUpdates = calculateStreaksFromHistory(nextHistory, activeHabit)
 
     // Update the calendar, streak and counters immediately on click.
     setLocalHabit((current) => ({ ...current, ...optimisticUpdates }))
@@ -126,8 +142,12 @@ export default function HabitDetailDialog({
     setUpdatingDate(dateKey)
 
     try {
-      await toggleHabitCompletionForDate(userId, activeHabit, dateKey)
+      const { milestoneReached, ...completionUpdates } =
+        await toggleHabitCompletionForDate(userId, activeHabit, dateKey)
+      setLocalHabit((current) => ({ ...current, ...completionUpdates }))
+      updateHabitInStore(activeHabit.id, completionUpdates)
       if (!wasCompleted) playCompletionSound()
+      celebrateMilestone(milestoneReached)
     } catch (error) {
       // Roll back if Firestore rejects the change.
       setLocalHabit(previousHabit)
@@ -182,8 +202,8 @@ export default function HabitDetailDialog({
         </div>
 
         <div className="grid grid-cols-3 gap-2">
-          <Stat icon={Flame} value={currentStreak} label="Current" accent={accent} />
-          <Stat icon={Trophy} value={longestStreak} label="Best" accent={accent} />
+          <Stat icon={Flame} value={currentStreak} label={isDailyHabit ? 'Current' : `Current ${streakUnit}${currentStreak === 1 ? '' : 's'}`} accent={accent} />
+          <Stat icon={Trophy} value={longestStreak} label={isDailyHabit ? 'Best' : `Best ${streakUnit}${longestStreak === 1 ? '' : 's'}`} accent={accent} />
           <Stat value={totalCompletedDays} label={isResistance ? 'Successful' : 'Completed'} accent={accent} />
         </div>
 

@@ -1,5 +1,4 @@
-import { format, subDays } from 'date-fns'
-import { DATE_KEY } from '../utils/date'
+import { getDashboardDateKeys, getFrequencyType, getScheduleProgress } from '../utils/date'
 import { Card, CardContent } from './ui/card'
 import TodaysTodo from './TodaysTodo'
 import HabitTypeIcon from './HabitTypeIcon'
@@ -10,34 +9,27 @@ function reportFor(habits, category) {
       (habit.category || 'consistency') === category,
   )
 
-  // Consistency evaluates today + the previous 6 days.
-  // Resistance evaluates the previous 7 completed days,
-  // excluding today so the user still has the full day to resist.
-  const offset = category === 'consistency' ? 0 : 1
-  const dates = Array.from(
-    { length: 7 },
-    (_, index) =>
-      format(
-        subDays(new Date(), index + offset),
-        DATE_KEY,
-      ),
-  ).reverse()
+  const dates = getDashboardDateKeys(category)
 
   let possible = 0
   let completed = 0
 
   const items = selected.map((habit) => {
-    const history = new Set(habit.completionHistory || [])
-    const count = dates.filter((date) => history.has(date)).length
+    const { completed: count, possible: expected } = getScheduleProgress(habit, dates)
 
-    possible += dates.length
+    possible += expected
     completed += count
 
     return {
       habit,
       completed: count,
-      possible: dates.length,
-      percent: Math.round((count / dates.length) * 100),
+      possible: expected,
+      unit: getFrequencyType(habit) === 'weekly'
+        ? 'weekly targets'
+        : getFrequencyType(habit) === 'specific-days'
+          ? 'scheduled days'
+          : 'days',
+      percent: expected ? Math.round((count / expected) * 100) : 0,
     }
   })
 
@@ -46,6 +38,9 @@ function reportFor(habits, category) {
     percent: possible ? Math.round((completed / possible) * 100) : 0,
     completed,
     possible,
+    unit: new Set(items.map((item) => item.unit)).size === 1
+      ? items[0]?.unit || 'days'
+      : 'expected',
   }
 }
 
@@ -380,6 +375,7 @@ function ProgressRing({
   accent,
   completed,
   possible,
+  unit,
 }) {
   const radius = 54
   const circumference = 2 * Math.PI * radius
@@ -425,7 +421,7 @@ function ProgressRing({
         </span>
 
         <span className="mt-0.5 text-[10px] text-muted-foreground sm:mt-1 sm:text-xs">
-          {completed} of {possible} days
+          {completed} of {possible} {unit}
         </span>
       </div>
     </div>
@@ -448,6 +444,16 @@ function CategoryReport({
     report.possible - report.completed,
     0,
   )
+  const progressLabels = report.unit === 'days'
+    ? {
+        completed: isResistance ? 'Days resisted' : 'Days completed',
+        remaining: isResistance ? 'Days not resisted' : 'Days missed',
+      }
+    : report.unit === 'weekly targets'
+      ? { completed: 'Targets met', remaining: 'Targets remaining' }
+      : report.unit === 'scheduled days'
+        ? { completed: 'Scheduled days met', remaining: 'Scheduled days remaining' }
+        : { completed: 'Expected completions', remaining: 'Expected remaining' }
 
   return (
     <Card
@@ -510,6 +516,7 @@ function CategoryReport({
                 accent={accent}
                 completed={report.completed}
                 possible={report.possible}
+                unit={report.unit}
               />
 
               <div className="grid min-w-0 flex-1 grid-cols-2 gap-3 sm:flex sm:flex-col sm:gap-4">
@@ -530,11 +537,9 @@ function CategoryReport({
                       {report.completed}
                     </p>
 
-                    <p className="text-xs text-muted-foreground">
-                      {isResistance
-                        ? 'Days resisted'
-                        : 'Days completed'}
-                    </p>
+                      <p className="text-xs text-muted-foreground">
+                        {progressLabels.completed}
+                      </p>
                   </div>
                 </div>
 
@@ -555,9 +560,7 @@ function CategoryReport({
                     </p>
 
                     <p className="text-xs text-muted-foreground">
-                      {isResistance
-                        ? 'Days not resisted'
-                        : 'Days missed'}
+                      {progressLabels.remaining}
                     </p>
                   </div>
                 </div>
@@ -605,6 +608,7 @@ function CategoryReport({
                     habit,
                     completed,
                     possible,
+                    unit,
                     percent,
                   }) => (
                     <div
@@ -620,7 +624,7 @@ function CategoryReport({
                           </span>
 
                           <span className="text-xs text-muted-foreground">
-                            {completed}/{possible} days
+                            {completed}/{possible} {unit}
                           </span>
                         </div>
 
