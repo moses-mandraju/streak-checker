@@ -2,6 +2,7 @@ import { format, subDays } from 'date-fns'
 import { DATE_KEY } from '../utils/date'
 import { Card, CardContent } from './ui/card'
 import TodaysTodo from './TodaysTodo'
+import HabitTypeIcon from './HabitTypeIcon'
 
 function reportFor(habits, category) {
   const selected = habits.filter(
@@ -436,7 +437,6 @@ function ProgressRing({
 /* -------------------------------------------------- */
 
 function CategoryReport({
-  icon,
   title,
   detail,
   report,
@@ -486,9 +486,7 @@ function CategoryReport({
               boxShadow: `0 0 24px ${accent}12`,
             }}
           >
-            <span className="text-lg sm:text-xl">
-              {icon}
-            </span>
+            <HabitTypeIcon resistance={isResistance} className="h-5 w-5" style={{ color: accent }} />
           </div>
 
           <div className="min-w-0">
@@ -524,7 +522,7 @@ function CategoryReport({
                       color: accent,
                     }}
                   >
-                    ✓
+                    <HabitTypeIcon resistance={isResistance} className="h-4 w-4" />
                   </div>
 
                   <div>
@@ -671,7 +669,7 @@ function CategoryReport({
                 backgroundColor: `${accent}15`,
               }}
             >
-              {icon}
+              <HabitTypeIcon resistance={isResistance} className="h-6 w-6" style={{ color: accent }} />
             </div>
 
             <div>
@@ -735,7 +733,6 @@ export default function WeeklyDashboardReport({
       <div className="grid gap-5 lg:grid-cols-2">
 
         <CategoryReport
-          icon="🌱"
           title="Overall Consistency"
           detail="Positive habits completed over the past 7 days"
           report={consistency}
@@ -745,7 +742,6 @@ export default function WeeklyDashboardReport({
         />
 
         <CategoryReport
-          icon="🛑"
           title="Overall Resistance"
           detail="Unwanted habits successfully resisted over the past 7 days"
           report={resistance}

@@ -8,6 +8,7 @@ import HabitCard from '../components/HabitCard'
 import HabitForm from '../components/HabitForm'
 import WeekHabitList from '../components/WeekHabitList'
 import HabitDetailDialog from '../components/HabitDetailDialog'
+import HabitTypeIcon from '../components/HabitTypeIcon'
 import ReminderSettingsModal from '../components/ReminderSettingsModal'
 import { Button } from '../components/ui/button'
 import { Dialog } from '../components/ui/dialog'
@@ -158,8 +159,8 @@ export default function HabitsPage() {
           ) : (
             <div className="space-y-3">
               <HabitCategory
-                icon="🌱"
                 title="Consistency"
+                resistance={false}
                 count={grouped.consistency.length}
                 expanded={expanded.consistency}
                 onToggle={() => setExpanded((value) => ({ ...value, consistency: !value.consistency }))}
@@ -167,8 +168,8 @@ export default function HabitsPage() {
                 onOpenDetails={setDetailHabit}
               />
               <HabitCategory
-                icon="🛑"
                 title="Resistance"
+                resistance
                 count={grouped.resistance.length}
                 expanded={expanded.resistance}
                 onToggle={() => setExpanded((value) => ({ ...value, resistance: !value.resistance }))}
@@ -196,6 +197,8 @@ export default function HabitsPage() {
         onOpenChange={(open) => !open && setDetailHabit(null)}
         onEdit={openEditDialog}
         onManageReminder={openReminderDialog}
+        habits={habits}
+        onNavigate={setDetailHabit}
       />
 
       <ReminderSettingsModal
@@ -219,7 +222,7 @@ export default function HabitsPage() {
   )
 }
 
-function HabitCategory({ icon, title, count, expanded, onToggle, habits, onOpenDetails }) {
+function HabitCategory({ title, resistance = false, count, expanded, onToggle, habits, onOpenDetails }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-border bg-card">
       <button
@@ -228,7 +231,7 @@ function HabitCategory({ icon, title, count, expanded, onToggle, habits, onOpenD
         className="flex w-full items-center gap-3 p-4 text-left transition hover:bg-accent/50"
         aria-expanded={expanded}
       >
-        <span className="text-xl">{icon}</span>
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: resistance ? '#FB806F20' : '#35D39920', color: resistance ? '#FB806F' : '#35D399' }}><HabitTypeIcon resistance={resistance} className="h-5 w-5" /></span>
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold">{title}</span>
           <span className="text-xs text-muted-foreground">

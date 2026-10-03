@@ -1,6 +1,8 @@
-import { format, getDay, getDaysInMonth, startOfMonth } from 'date-fns'
+import { format, getDay, getDaysInMonth, isSameMonth, startOfMonth } from 'date-fns'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { DATE_KEY } from '../utils/date'
 import { cn } from '../utils/cn'
+import HabitTypeIcon from './HabitTypeIcon'
 
 const weekdays = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
@@ -9,16 +11,21 @@ export default function InteractiveHabitMonth({
   accent,
   onToggleDate,
   updatingDate,
+  monthDate,
+  onPreviousMonth,
+  onNextMonth,
+  isResistance = false,
 }) {
   const today = new Date()
-  const start = startOfMonth(today)
+  const displayedMonth = monthDate || today
+  const start = startOfMonth(displayedMonth)
   const leading = (getDay(start) + 6) % 7
   const history = habit.completionHistory || []
 
   const cells = [
     ...Array(leading),
     ...Array.from(
-      { length: getDaysInMonth(today) },
+      { length: getDaysInMonth(displayedMonth) },
       (_, index) => index + 1
     ),
   ]
@@ -26,9 +33,13 @@ export default function InteractiveHabitMonth({
   return (
     <section className="mt-5">
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-[.14em] text-muted-foreground">
-          {format(today, 'MMMM yyyy')}
-        </p>
+        <div className="flex items-center gap-1">
+          {onPreviousMonth ? <button aria-label="Previous month" className="rounded-md p-1 text-muted-foreground transition hover:bg-accent hover:text-foreground" type="button" onClick={onPreviousMonth}><ChevronLeft className="h-3.5 w-3.5" /></button> : null}
+          <p className="text-xs font-semibold uppercase tracking-[.14em] text-muted-foreground">
+            {format(displayedMonth, 'MMMM yyyy')}
+          </p>
+          {onNextMonth && !isSameMonth(displayedMonth, today) ? <button aria-label="Next month" className="rounded-md p-1 text-muted-foreground transition hover:bg-accent hover:text-foreground" type="button" onClick={onNextMonth}><ChevronRight className="h-3.5 w-3.5" /></button> : null}
+        </div>
 
         <span className="text-xs text-muted-foreground">
           Tap a day to edit
@@ -51,8 +62,8 @@ export default function InteractiveHabitMonth({
           }
 
           const date = new Date(
-            today.getFullYear(),
-            today.getMonth(),
+            displayedMonth.getFullYear(),
+            displayedMonth.getMonth(),
             number
           )
 
@@ -96,7 +107,7 @@ export default function InteractiveHabitMonth({
                   : undefined
               }
             >
-              {complete ? '✓' : number}
+              {complete ? <HabitTypeIcon resistance={isResistance} className="h-3 w-3" /> : number}
             </button>
           )
         })}

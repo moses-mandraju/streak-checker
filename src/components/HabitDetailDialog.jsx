@@ -1,11 +1,14 @@
 import {
   Bell,
   BellRing,
+  ChevronLeft,
+  ChevronRight,
   Flame,
   Pencil,
   Trash2,
   Trophy,
 } from 'lucide-react'
+import { addMonths, subMonths } from 'date-fns'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
@@ -21,6 +24,7 @@ import { Button } from './ui/button'
 import { Card, CardContent } from './ui/card'
 import { Dialog } from './ui/dialog'
 import InteractiveHabitMonth from './InteractiveHabitMonth'
+import HabitTypeIcon from './HabitTypeIcon'
 
 const accents = ['#35D399', '#60A5FA', '#A78BFA', '#FBBF24', '#FB7185', '#22D3EE']
 
@@ -38,14 +42,18 @@ export default function HabitDetailDialog({
   onOpenChange,
   onEdit,
   onManageReminder,
+  habits = [],
+  onNavigate,
 }) {
   const [updatingDate, setUpdatingDate] = useState('')
   const [busy, setBusy] = useState(false)
   const [localHabit, setLocalHabit] = useState(habit)
+  const [monthDate, setMonthDate] = useState(new Date())
   const updateHabitInStore = useHabitStore((state) => state.updateHabit)
 
   useEffect(() => {
     setLocalHabit(habit)
+    setMonthDate(new Date())
   }, [habit])
 
   if (!habit || !localHabit) return null
@@ -57,6 +65,14 @@ export default function HabitDetailDialog({
   const currentStreak = getCurrentStreak(activeHabit)
   const longestStreak = getLongestStreak(activeHabit)
   const totalCompletedDays = (activeHabit.completionHistory || []).length
+  const habitIndex = habits.findIndex((item) => item.id === activeHabit.id)
+  const hasHabitNavigation = habits.length > 1 && habitIndex >= 0
+
+  function navigateHabit(direction) {
+    if (!hasHabitNavigation) return
+    const nextIndex = (habitIndex + direction + habits.length) % habits.length
+    onNavigate?.(habits[nextIndex])
+  }
 
   async function handleComplete() {
     if (busy || completedToday) return
@@ -143,7 +159,7 @@ export default function HabitDetailDialog({
   return (
     <Dialog
       open={open}
-      title={activeHabit.title}
+      title={<div className="flex items-center gap-1"><Button aria-label="Previous habit" className="h-8 w-8" disabled={!hasHabitNavigation} size="icon" variant="ghost" onClick={() => navigateHabit(-1)}><ChevronLeft className="h-4 w-4" /></Button><span className="max-w-44 truncate">{activeHabit.title}</span><Button aria-label="Next habit" className="h-8 w-8" disabled={!hasHabitNavigation} size="icon" variant="ghost" onClick={() => navigateHabit(1)}><ChevronRight className="h-4 w-4" /></Button></div>}
       onOpenChange={onOpenChange}
     >
       <div className="space-y-5">
@@ -158,9 +174,7 @@ export default function HabitDetailDialog({
             {activeHabit.emoji}
           </div>
           <div>
-            <p className="text-sm font-medium">
-              {isResistance ? '🛑 Resistance' : '🌱 Consistency'}
-            </p>
+            <p className="flex items-center gap-1.5 text-sm font-medium" style={{ color: isResistance ? '#FB806F' : '#35D399' }}><HabitTypeIcon resistance={isResistance} className="h-4 w-4" />{isResistance ? 'Resistance' : 'Consistency'}</p>
             <p className="mt-1 text-xs text-muted-foreground">
               Tap any past day to update your history.
             </p>
@@ -178,6 +192,10 @@ export default function HabitDetailDialog({
           accent={accent}
           updatingDate={updatingDate}
           onToggleDate={handleToggleDate}
+          monthDate={monthDate}
+          onPreviousMonth={() => setMonthDate((value) => subMonths(value, 1))}
+          onNextMonth={() => setMonthDate((value) => addMonths(value, 1))}
+          isResistance={isResistance}
         />
 
         {currentStreak === 0 && totalCompletedDays > 0 ? (
