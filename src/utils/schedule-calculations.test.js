@@ -6,7 +6,11 @@ import {
   calculateStreaksFromHistory,
   getCompletionStats,
   getDashboardDateKeys,
+  getLastStreak,
   getScheduleProgress,
+  getWeeklyComparisonDateKeys,
+  getWeeklyHabitInsights,
+  todayKey,
 } from './date.js'
 import { getReachedStreakMilestone } from './streak-milestones.js'
 
@@ -159,6 +163,68 @@ test('weekly streaks use Monday boundaries and preserve the open-current-period 
   assert.equal(monday.longestStreak, 1)
 })
 
+test('Last Streak preserves the completed run before an active daily streak and recalculates edits', () => {
+  const today = new Date()
+  const history = [
+    format(subDays(today, 6), 'yyyy-MM-dd'),
+    format(subDays(today, 5), 'yyyy-MM-dd'),
+    format(subDays(today, 2), 'yyyy-MM-dd'),
+    format(subDays(today, 1), 'yyyy-MM-dd'),
+    todayKey(),
+  ]
+
+  assert.equal(getLastStreak({ completionHistory: history }), 2)
+  assert.equal(getLastStreak({ category: 'resistance', completionHistory: history }), 2)
+  assert.equal(
+    calculateStreaksFromHistory(history.filter((key) => key !== format(subDays(today, 5), 'yyyy-MM-dd'))).lastStreak,
+    1,
+  )
+
+  const endedHistory = history.filter((key) =>
+    ![
+      todayKey(),
+      format(subDays(today, 1), 'yyyy-MM-dd'),
+      format(subDays(today, 2), 'yyyy-MM-dd'),
+    ].includes(key),
+  )
+  assert.equal(getLastStreak({ completionHistory: endedHistory }), 2)
+})
+
+test('Last Streak follows specific-day schedules and responds to backdated deletions', () => {
+  const habit = {
+    frequencyType: 'specific-days',
+    scheduledDays: [1, 3, 5],
+    createdDate: '2026-10-05',
+  }
+  const history = ['2026-10-05', '2026-10-07', '2026-10-12', '2026-10-14']
+  const current = calculateScheduledStreaks(habit, history, new Date(2026, 9, 15))
+
+  assert.equal(current.currentStreak, 2)
+  assert.equal(current.lastStreak, 2)
+
+  const edited = calculateScheduledStreaks(
+    habit,
+    history.filter((key) => key !== '2026-10-07'),
+    new Date(2026, 9, 15),
+  )
+  assert.equal(edited.lastStreak, 1)
+})
+
+test('Last Streak uses weekly target periods', () => {
+  const result = calculateScheduledStreaks(
+    {
+      frequencyType: 'weekly',
+      weeklyTarget: 3,
+      createdDate: '2026-09-28',
+    },
+    ['2026-09-28', '2026-09-29', '2026-09-30', '2026-10-05', '2026-10-07', '2026-10-12', '2026-10-13', '2026-10-14'],
+    new Date(2026, 9, 14),
+  )
+
+  assert.equal(result.currentStreak, 1)
+  assert.equal(result.lastStreak, 1)
+})
+
 test('mixed-frequency totals weight each habit by its expected schedule units', () => {
   const dates = [
     '2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04',
@@ -197,6 +263,71 @@ test('Dashboard date windows preserve the Resistance current-day exclusion', () 
     '2026-09-26', '2026-09-27', '2026-09-28', '2026-09-29',
     '2026-09-30', '2026-10-01', '2026-10-02',
   ])
+})
+
+test('weekly comparisons use equal seven-day periods that exclude the current day', () => {
+  const periods = getWeeklyComparisonDateKeys(new Date(2026, 9, 8))
+
+  assert.deepEqual(periods.current, [
+    '2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04',
+    '2026-10-05', '2026-10-06', '2026-10-07',
+  ])
+  assert.deepEqual(periods.previous, [
+    '2026-09-24', '2026-09-25', '2026-09-26', '2026-09-27',
+    '2026-09-28', '2026-09-29', '2026-09-30',
+  ])
+})
+
+test('weekly insights apply each schedule and omit habits without a full prior period', () => {
+  const habits = [
+    {
+      id: 'improved',
+      title: 'Improved',
+      category: 'consistency',
+      createdDate: '2026-09-01',
+      completionHistory: [
+        '2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04',
+        '2026-10-05', '2026-10-06', '2026-10-07',
+        '2026-09-24', '2026-09-26', '2026-09-28',
+      ],
+    },
+    {
+      id: 'attention',
+      title: 'Attention',
+      category: 'consistency',
+      createdDate: '2026-09-01',
+      completionHistory: [
+        '2026-10-01', '2026-10-04',
+        '2026-09-24', '2026-09-26', '2026-09-28', '2026-09-30',
+      ],
+    },
+    {
+      id: 'new',
+      title: 'New',
+      category: 'consistency',
+      createdDate: '2026-10-03',
+      completionHistory: ['2026-10-03'],
+    },
+    {
+      id: 'weekly',
+      title: 'Weekly target',
+      category: 'consistency',
+      frequencyType: 'weekly',
+      weeklyTarget: 3,
+      createdDate: '2026-09-01',
+      completionHistory: [
+        '2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04', '2026-10-05',
+        '2026-09-24', '2026-09-26',
+      ],
+    },
+  ]
+  const insights = getWeeklyHabitInsights(habits, 'consistency', new Date(2026, 9, 8))
+
+  assert.equal(insights.comparedHabitCount, 3)
+  assert.equal(insights.notComparedCount, 1)
+  assert.equal(insights.improved[0].habit.id, 'improved')
+  assert.equal(insights.attention[0].habit.id, 'attention')
+  assert.ok(insights.currentPercent > insights.previousPercent)
 })
 
 test('streak milestones trigger only when a day streak newly crosses a threshold', () => {

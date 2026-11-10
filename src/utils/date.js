@@ -30,6 +30,15 @@ export function getDashboardDateKeys(category, asOfDate = new Date()) {
   ).reverse()
 }
 
+export function getWeeklyComparisonDateKeys(asOfDate = new Date()) {
+  const current = getDashboardDateKeys('resistance', asOfDate)
+  const previous = current.map((key) =>
+    format(subDays(new Date(`${key}T00:00:00`), 7), DATE_KEY),
+  )
+
+  return { current, previous }
+}
+
 function getWeeklyTarget(habit) {
   const target = Number(habit?.weeklyTarget)
   return [3, 4, 5, 6].includes(target) ? target : 3
@@ -65,6 +74,13 @@ function getDateKeysBetween(startKey, endKey) {
 function expectedWeeklyTarget(habit, activeDays) {
   if (activeDays <= 0) return 0
   return Math.min(getWeeklyTarget(habit), Math.ceil(getWeeklyTarget(habit) * activeDays / 7))
+}
+
+function getLastCompletedStreak(streaks, currentStreak) {
+  const completedStreaks = currentStreak > 0
+    ? streaks.slice(0, -1)
+    : streaks
+  return completedStreaks.at(-1) || 0
 }
 
 export function todayKey() {
@@ -233,6 +249,7 @@ export function calculateStreaksFromHistory(completionHistory, habit) {
   let longestStreak = 0
   let runningStreak = 0
   let previousDate = null
+  const streaks = []
 
   history.forEach((key) => {
     const date = new Date(`${key}T00:00:00`)
@@ -244,6 +261,12 @@ export function calculateStreaksFromHistory(completionHistory, habit) {
       runningStreak += 1
     } else {
       runningStreak = 1
+    }
+
+    if (runningStreak === 1) {
+      streaks.push(1)
+    } else {
+      streaks[streaks.length - 1] = runningStreak
     }
 
     longestStreak = Math.max(
@@ -278,6 +301,7 @@ export function calculateStreaksFromHistory(completionHistory, habit) {
     completionHistory: history,
     currentStreak,
     longestStreak,
+    lastStreak: getLastCompletedStreak(streaks, currentStreak),
     lastCompletedDate: history.at(-1) || '',
   }
 }
@@ -295,15 +319,18 @@ export function calculateScheduledStreaks(habit, completionHistory, asOfDate = n
       .filter((key) => scheduledDays.has(getDay(new Date(`${key}T00:00:00`))))
     let longestStreak = 0
     let runningStreak = 0
+    const streaks = []
 
     for (const key of expectedDates) {
       if (completed.has(key)) {
         runningStreak += 1
         longestStreak = Math.max(longestStreak, runningStreak)
       } else {
+        if (runningStreak) streaks.push(runningStreak)
         runningStreak = 0
       }
     }
+    if (runningStreak) streaks.push(runningStreak)
 
     let currentStreak = 0
     let index = expectedDates.length - 1
@@ -317,6 +344,7 @@ export function calculateScheduledStreaks(habit, completionHistory, asOfDate = n
       completionHistory: history,
       currentStreak,
       longestStreak,
+      lastStreak: getLastCompletedStreak(streaks, currentStreak),
       lastCompletedDate: history.at(-1) || '',
     }
   }
@@ -327,6 +355,7 @@ export function calculateScheduledStreaks(habit, completionHistory, asOfDate = n
   const weeks = []
   let longestStreak = 0
   let runningStreak = 0
+  const streaks = []
 
   while (weekStart <= currentWeekStart) {
     const weekEnd = addDays(weekStart, 6)
@@ -345,11 +374,13 @@ export function calculateScheduledStreaks(habit, completionHistory, asOfDate = n
       runningStreak += 1
       longestStreak = Math.max(longestStreak, runningStreak)
     } else {
+      if (runningStreak) streaks.push(runningStreak)
       runningStreak = 0
     }
 
     weekStart = addDays(weekStart, 7)
   }
+  if (runningStreak) streaks.push(runningStreak)
 
   let currentStreak = 0
   let weekIndex = weeks.length - 1
@@ -363,6 +394,7 @@ export function calculateScheduledStreaks(habit, completionHistory, asOfDate = n
     completionHistory: history,
     currentStreak,
     longestStreak,
+    lastStreak: getLastCompletedStreak(streaks, currentStreak),
     lastCompletedDate: history.at(-1) || '',
   }
 }
@@ -392,11 +424,85 @@ export function getScheduleProgress(habit, dateKeys) {
   return { completed, possible }
 }
 
+export function getWeeklyHabitInsights(habits, category, asOfDate = new Date()) {
+  const { current, previous } = getWeeklyComparisonDateKeys(asOfDate)
+  const selected = habits.filter(
+    (habit) => (habit.category || 'consistency') === category,
+  )
+  const eligible = selected.filter((habit) => {
+    const startDate = getCreatedDateKey(habit) ||
+      [...(habit.completionHistory || [])].sort()[0]
+    return startDate && startDate <= previous[0]
+  })
+
+  const items = eligible.flatMap((habit) => {
+    const thisWeek = getScheduleProgress(habit, current)
+    const lastWeek = getScheduleProgress(habit, previous)
+    if (!thisWeek.possible || !lastWeek.possible) return []
+
+    const currentPercent = Math.round((thisWeek.completed / thisWeek.possible) * 100)
+    const previousPercent = Math.round((lastWeek.completed / lastWeek.possible) * 100)
+
+    return [{
+      habit,
+      currentPercent,
+      previousPercent,
+      change: currentPercent - previousPercent,
+    }]
+  })
+  const currentProgress = eligible.reduce((total, habit) => {
+    const progress = getScheduleProgress(habit, current)
+    return {
+      completed: total.completed + progress.completed,
+      possible: total.possible + progress.possible,
+    }
+  }, { completed: 0, possible: 0 })
+  const previousProgress = eligible.reduce((total, habit) => {
+    const progress = getScheduleProgress(habit, previous)
+    return {
+      completed: total.completed + progress.completed,
+      possible: total.possible + progress.possible,
+    }
+  }, { completed: 0, possible: 0 })
+  const currentPercent = currentProgress.possible
+    ? Math.round((currentProgress.completed / currentProgress.possible) * 100)
+    : null
+  const previousPercent = previousProgress.possible
+    ? Math.round((previousProgress.completed / previousProgress.possible) * 100)
+    : null
+
+  return {
+    currentPercent,
+    previousPercent,
+    change: currentPercent === null || previousPercent === null
+      ? null
+      : currentPercent - previousPercent,
+    comparedHabitCount: items.length,
+    notComparedCount: selected.length - eligible.length,
+    unscoredHabitCount: eligible.length - items.length,
+    improved: [...items]
+      .filter((item) => item.change > 0)
+      .sort((left, right) => right.change - left.change || left.currentPercent - right.currentPercent)
+      .slice(0, 3),
+    attention: [...items]
+      .filter((item) => item.currentPercent < 100)
+      .sort((left, right) => left.currentPercent - right.currentPercent || left.change - right.change)
+      .slice(0, 3),
+  }
+}
+
 export function getCurrentStreak(habit) {
   return calculateStreaksFromHistory(
     habit?.completionHistory || [],
     habit,
   ).currentStreak
+}
+
+export function getLastStreak(habit) {
+  return calculateStreaksFromHistory(
+    habit?.completionHistory || [],
+    habit,
+  ).lastStreak
 }
 
 export function getLongestStreak(habit) {

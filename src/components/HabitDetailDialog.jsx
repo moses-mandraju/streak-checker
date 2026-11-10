@@ -17,7 +17,7 @@ import {
   deleteHabit,
   toggleHabitCompletionForDate,
 } from '../services/habitService'
-import { todayKey, getCurrentStreak, getFrequencyType, getLongestStreak, getStreakUnit, calculateStreaksFromHistory } from '../utils/date'
+import { todayKey, getCompletionStats, getCurrentStreak, getFrequencyType, getLastStreak, getLongestStreak, getStreakUnit, calculateStreaksFromHistory } from '../utils/date'
 import { playCompletionSound } from '../utils/completionSound'
 import { useHabitStore } from '../store/habitStore'
 import { Button } from './ui/button'
@@ -71,7 +71,9 @@ export default function HabitDetailDialog({
   const isResistance = activeHabit.category === 'resistance'
   const completedToday = (activeHabit.completionHistory || []).includes(todayKey())
   const currentStreak = getCurrentStreak(activeHabit)
+  const lastStreak = getLastStreak(activeHabit)
   const longestStreak = getLongestStreak(activeHabit)
+  const performancePercent = getCompletionStats(activeHabit).completionPercentage
   const streakUnit = getStreakUnit(activeHabit)
   const totalCompletedDays = (activeHabit.completionHistory || []).length
   const isDailyHabit = getFrequencyType(activeHabit) === 'daily'
@@ -116,6 +118,7 @@ export default function HabitDetailDialog({
       updateHabitInStore(activeHabit.id, {
         completionHistory: previousHabit.completionHistory || [],
         currentStreak: previousHabit.currentStreak || 0,
+        lastStreak: getLastStreak(previousHabit),
         longestStreak: previousHabit.longestStreak || 0,
         lastCompletedDate: previousHabit.lastCompletedDate || '',
       })
@@ -154,6 +157,7 @@ export default function HabitDetailDialog({
       updateHabitInStore(activeHabit.id, {
         completionHistory: previousHabit.completionHistory || [],
         currentStreak: previousHabit.currentStreak || 0,
+        lastStreak: getLastStreak(previousHabit),
         longestStreak: previousHabit.longestStreak || 0,
         lastCompletedDate: previousHabit.lastCompletedDate || '',
       })
@@ -201,10 +205,29 @@ export default function HabitDetailDialog({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          <Stat icon={Flame} value={currentStreak} label={isDailyHabit ? 'Current' : `Current ${streakUnit}${currentStreak === 1 ? '' : 's'}`} accent={accent} />
-          <Stat icon={Trophy} value={longestStreak} label={isDailyHabit ? 'Best' : `Best ${streakUnit}${longestStreak === 1 ? '' : 's'}`} accent={accent} />
-          <Stat value={totalCompletedDays} label={isResistance ? 'Successful' : 'Completed'} accent={accent} />
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <Stat
+            icon={Flame}
+            value={currentStreak}
+            label={`Current Streak${isDailyHabit ? '' : ` (${streakUnit}s)`}`}
+            accent={accent}
+          />
+          <Stat
+            value={lastStreak}
+            label={`Last Streak${isDailyHabit ? '' : ` (${streakUnit}s)`}`}
+            accent={accent}
+          />
+          <Stat
+            icon={Trophy}
+            value={longestStreak}
+            label={`Best Streak${isDailyHabit ? '' : ` (${streakUnit}s)`}`}
+            accent={accent}
+          />
+          <Stat
+            value={totalCompletedDays}
+            label={isResistance ? 'Successful Days' : 'Completed Days'}
+            accent={accent}
+          />
         </div>
 
         <InteractiveHabitMonth
@@ -227,11 +250,13 @@ export default function HabitDetailDialog({
             }}
           >
             <p className="text-sm font-semibold" style={{ color: accent }}>
-              Your streak ended. Your progress didn't.
+              Your streak ended, but your progress didn't.
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              {totalCompletedDays} {isResistance ? 'successful' : 'completed'} days are still part of your history.
-              Start a new streak today.
+              Your last streak was {lastStreak} {streakUnit}{lastStreak === 1 ? '' : 's'}.
+              {' '}Your current streak is {currentStreak}, your best is {longestStreak}, and your overall
+              {' '}{isResistance ? 'resistance' : 'consistency'} is {performancePercent}%.
+              {' '}You can start again when you're ready; your progress and schedule stay intact.
             </p>
           </div>
         ) : null}

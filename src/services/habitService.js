@@ -41,6 +41,7 @@ export function createHabit(userId, values) {
     createdDate: todayKey(),
 
     currentStreak: 0,
+    lastStreak: 0,
     longestStreak: 0,
     lastCompletedDate: '',
 

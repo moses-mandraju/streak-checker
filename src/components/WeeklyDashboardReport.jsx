@@ -1,4 +1,4 @@
-import { getDashboardDateKeys, getFrequencyType, getScheduleProgress } from '../utils/date'
+import { getDashboardDateKeys, getFrequencyType, getScheduleProgress, getWeeklyHabitInsights } from '../utils/date'
 import { Card, CardContent } from './ui/card'
 import TodaysTodo from './TodaysTodo'
 import HabitTypeIcon from './HabitTypeIcon'
@@ -436,6 +436,7 @@ function CategoryReport({
   title,
   detail,
   report,
+  insights,
   accent,
   emptyMessage,
   isResistance,
@@ -594,6 +595,59 @@ function CategoryReport({
 
             </div>
 
+            <div className="relative z-10 mt-4 rounded-2xl border p-3 sm:mt-5 sm:p-4" style={{ borderColor: `${accent}20`, backgroundColor: `${accent}06` }}>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Weekly insights
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                This week vs last week · same seven completed days, excluding today.
+              </p>
+
+              {insights.comparedHabitCount ? (
+                <>
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    <TrendMetric label="This week" value={`${insights.currentPercent}%`} accent={accent} />
+                    <TrendMetric label="Last week" value={`${insights.previousPercent}%`} accent={accent} />
+                    <TrendMetric
+                      label="Change"
+                      value={`${insights.change > 0 ? '+' : ''}${insights.change} pts`}
+                      accent={accent}
+                    />
+                  </div>
+
+                  {insights.notComparedCount > 0 ? (
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      {insights.notComparedCount} habit{insights.notComparedCount === 1 ? '' : 's'} without a full prior week
+                      {' '}not included in this comparison.
+                    </p>
+                  ) : null}
+
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <InsightList
+                      title="Improved most"
+                      items={insights.improved}
+                      accent={accent}
+                      valueForItem={(item) => `+${item.change} pts`}
+                      emptyMessage="No habits improved compared with last week."
+                    />
+                    <InsightList
+                      title="Needs attention"
+                      items={insights.attention}
+                      accent={accent}
+                      valueForItem={(item) => `${item.currentPercent}%`}
+                      emptyMessage="No missed schedule units in this period."
+                    />
+                  </div>
+                </>
+              ) : (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  {insights.notComparedCount > 0
+                    ? 'Not enough historical data yet. A habit needs a full previous reporting week before it can be compared.'
+                    : 'No scheduled units are available to compare in these periods.'}
+                </p>
+              )}
+            </div>
+
             {/* Individual habits */}
             <div
               className="relative z-10 mt-4 border-t pt-3 sm:mt-6 sm:pt-4"
@@ -694,6 +748,37 @@ function CategoryReport({
   )
 }
 
+function TrendMetric({ label, value, accent }) {
+  return (
+    <div className="min-w-0 rounded-xl bg-black/10 px-2 py-2 text-center">
+      <p className="truncate text-[10px] text-muted-foreground">{label}</p>
+      <p className="mt-1 text-sm font-semibold tabular-nums" style={{ color: accent }}>{value}</p>
+    </div>
+  )
+}
+
+function InsightList({ title, items, accent, valueForItem, emptyMessage }) {
+  return (
+    <div className="min-w-0">
+      <p className="mb-1 text-xs font-semibold">{title}</p>
+      {items.length ? (
+        <ul className="space-y-1">
+          {items.map(({ habit, ...item }) => (
+            <li key={habit.id} className="flex items-center justify-between gap-2 text-xs">
+              <span className="truncate text-muted-foreground">{habit.emoji} {habit.title}</span>
+              <span className="shrink-0 font-medium tabular-nums" style={{ color: accent }}>
+                {valueForItem({ habit, ...item })}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-[11px] text-muted-foreground">{emptyMessage}</p>
+      )}
+    </div>
+  )
+}
+
 /* -------------------------------------------------- */
 /* Dashboard                                          */
 /* -------------------------------------------------- */
@@ -711,6 +796,8 @@ export default function WeeklyDashboardReport({
     habits,
     'resistance',
   )
+  const consistencyInsights = getWeeklyHabitInsights(habits, 'consistency')
+  const resistanceInsights = getWeeklyHabitInsights(habits, 'resistance')
 
   const firstName =
     user?.displayName?.split(' ')[0] ||
@@ -740,6 +827,7 @@ export default function WeeklyDashboardReport({
           title="Overall Consistency"
           detail="Positive habits completed over the past 7 days"
           report={consistency}
+          insights={consistencyInsights}
           accent="#35D399"
           emptyMessage="No consistency habits yet."
           isResistance={false}
@@ -749,6 +837,7 @@ export default function WeeklyDashboardReport({
           title="Overall Resistance"
           detail="Unwanted habits successfully resisted over the past 7 days"
           report={resistance}
+          insights={resistanceInsights}
           accent="#FB806F"
           emptyMessage="No resistance habits yet."
           isResistance
