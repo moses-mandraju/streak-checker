@@ -1,9 +1,10 @@
+import { addDays, format } from 'date-fns'
 import {
   createTaskDocument,
   updateTaskDocument,
   deleteTaskDocument,
 } from '../firebase/firestore'
-import { todayKey } from '../utils/date'
+import { DATE_KEY, todayKey } from '../utils/date'
 import { DEFAULT_INCOMPLETE_ACTION, getOverdueTaskAction } from '../utils/task-lifecycle'
 
 export function createTask(userId, title, incompleteAction = DEFAULT_INCOMPLETE_ACTION) {
@@ -28,6 +29,14 @@ export function deleteTask(userId, taskId) {
 
 export function setTaskIncompleteAction(userId, taskId, incompleteAction) {
   return updateTaskDocument(userId, taskId, { incompleteAction })
+}
+
+export function moveTaskToTomorrow(userId, taskId) {
+  const tomorrow = format(
+    addDays(new Date(`${todayKey()}T00:00:00`), 1),
+    DATE_KEY,
+  )
+  return updateTaskDocument(userId, taskId, { dueDate: tomorrow })
 }
 
 export function reconcileOverdueTask(userId, task, today = todayKey()) {

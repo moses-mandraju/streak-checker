@@ -1,10 +1,11 @@
-import { CalendarClock, Check, ChevronDown, Plus, Trash2 } from 'lucide-react'
+import { CalendarClock, Check, ChevronDown, MoreHorizontal, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 
 import {
   createTask,
   deleteTask,
+  moveTaskToTomorrow,
   setTaskIncompleteAction,
   toggleTask,
 } from '../services/taskService'
@@ -43,6 +44,11 @@ export default function TodaysTodo() {
     () => tasks.filter((task) => task.dueDate === todayKey()),
     [tasks],
   )
+  const pendingTasks = todaysTasks.filter((task) => !task.completed)
+  const completedTasks = todaysTasks.filter((task) => task.completed)
+  const completionPercent = todaysTasks.length
+    ? Math.round((completedTasks.length / todaysTasks.length) * 100)
+    : 0
 
   async function handleAdd(event) {
     event.preventDefault()
@@ -77,6 +83,14 @@ export default function TodaysTodo() {
     }
   }
 
+  async function handleMoveToTomorrow(task) {
+    try {
+      await moveTaskToTomorrow(user.uid, task.id)
+    } catch (error) {
+      toast.error(error?.message || 'Unable to move task.')
+    }
+  }
+
   async function handleIncompleteActionChange(task, value) {
     try {
       await setTaskIncompleteAction(user.uid, task.id, value)
@@ -86,97 +100,228 @@ export default function TodaysTodo() {
   }
 
   return (
-    <Card className="mb-6 border-primary/20">
-      <CardContent className="p-4 sm:p-5">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-              Today
-            </p>
-            <h2 className="mt-1 text-lg font-semibold">Today's to-do</h2>
+    <div className="space-y-5">
+      <Card className="overflow-hidden border-primary/20">
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+                Daily progress
+              </p>
+              <h2 className="mt-1 text-xl font-semibold">Today's focus</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {completedTasks.length} of {todaysTasks.length} tasks completed
+              </p>
+            </div>
+            <span className="rounded-2xl bg-primary/10 px-3 py-2 text-lg font-semibold tabular-nums text-primary">
+              {completionPercent}%
+            </span>
           </div>
-          <span className="text-xs text-muted-foreground">
-            {todaysTasks.filter((task) => task.completed).length}/{todaysTasks.length} done
-          </span>
-        </div>
-
-        {loading ? (
-          <div className="h-10 animate-pulse rounded-xl bg-muted" />
-        ) : todaysTasks.length ? (
-          <div className="space-y-2">
-            {todaysTasks.map((task) => (
-              <div
-                key={task.id}
-                className="flex items-center gap-2 rounded-xl border border-border bg-background/60 px-3 py-2.5"
-              >
-                <button
-                  type="button"
-                  aria-label={task.completed ? 'Mark task incomplete' : 'Complete task'}
-                  onClick={() => handleToggle(task)}
-                  className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border transition ${
-                    task.completed
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border text-transparent hover:border-primary'
-                  }`}
-                >
-                  <Check className="h-3.5 w-3.5" />
-                </button>
-
-                <div className="min-w-0 flex-1">
-                  <span className={`block truncate text-sm ${task.completed ? 'text-muted-foreground line-through' : ''}`}>
-                    {task.title}
-                  </span>
-                  {!task.completed ? (
-                    <TaskPolicyDropdown
-                      ariaLabel={`If not completed today: ${task.title}`}
-                      value={task.incompleteAction || DEFAULT_INCOMPLETE_ACTION}
-                      onChange={(value) => handleIncompleteActionChange(task, value)}
-                      compact
-                    />
-                  ) : null}
-                </div>
-
-                <button
-                  type="button"
-                  aria-label="Delete task"
-                  onClick={() => handleDelete(task)}
-                  className="p-1 text-muted-foreground transition hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-sm text-muted-foreground">
-            Nothing planned for today.
-          </p>
-        )}
-
-        <form onSubmit={handleAdd} className="mt-3 space-y-2">
-          <div className="flex gap-2">
-            <Input
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder="Add a task for today..."
-              maxLength={120}
+          <div
+            className="mt-4 h-2 overflow-hidden rounded-full bg-secondary"
+            role="progressbar"
+            aria-label="Today's task completion"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={completionPercent}
+          >
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-500"
+              style={{ width: `${completionPercent}%` }}
             />
-            <Button type="submit" disabled={saving || !title.trim()}>
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Add</span>
-            </Button>
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span>If not completed today:</span>
+        </CardContent>
+      </Card>
+
+      <form onSubmit={handleAdd} className="flex flex-col gap-3 rounded-2xl border border-primary/20 bg-card p-3 shadow-sm sm:flex-row sm:items-center sm:p-4">
+        <Input
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          placeholder="What would you like to get done?"
+          aria-label="New task"
+          maxLength={120}
+          className="h-11 flex-1 bg-background/60"
+        />
+        <div className="flex flex-wrap items-center justify-between gap-2 sm:justify-end">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="hidden sm:inline">If unfinished:</span>
             <TaskPolicyDropdown
               ariaLabel="If not completed today"
               value={incompleteAction}
               onChange={setIncompleteAction}
+              compact
             />
           </div>
-        </form>
-      </CardContent>
-    </Card>
+          <Button type="submit" disabled={saving || !title.trim()}>
+            <Plus className="h-4 w-4" />
+            Add task
+          </Button>
+        </div>
+      </form>
+
+      {loading ? (
+        <div className="space-y-3">
+          <div className="h-28 animate-pulse rounded-2xl bg-muted" />
+          <div className="h-24 animate-pulse rounded-2xl bg-muted" />
+        </div>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <TaskSection
+            title="Pending"
+            count={pendingTasks.length}
+            tasks={pendingTasks}
+            emptyMessage="You're all caught up. Add a task whenever you're ready."
+            onToggle={handleToggle}
+            onDelete={handleDelete}
+            onMoveToTomorrow={handleMoveToTomorrow}
+            onActionChange={handleIncompleteActionChange}
+          />
+          <TaskSection
+            title="Completed"
+            count={completedTasks.length}
+            tasks={completedTasks}
+            emptyMessage="Completed tasks will appear here."
+            onToggle={handleToggle}
+            onDelete={handleDelete}
+            onMoveToTomorrow={handleMoveToTomorrow}
+            onActionChange={handleIncompleteActionChange}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function TaskSection({
+  title,
+  count,
+  tasks,
+  emptyMessage,
+  onToggle,
+  onDelete,
+  onMoveToTomorrow,
+  onActionChange,
+}) {
+  return (
+    <section className="rounded-2xl border border-border bg-card/70 p-4 sm:p-5" aria-label={`${title} tasks`}>
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="font-semibold">{title}</h3>
+        <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">{count}</span>
+      </div>
+      {tasks.length ? (
+        <ul className="space-y-2">
+          {tasks.map((task) => (
+            <TaskRow
+              key={task.id}
+              task={task}
+              onToggle={onToggle}
+              onDelete={onDelete}
+              onMoveToTomorrow={onMoveToTomorrow}
+              onActionChange={onActionChange}
+            />
+          ))}
+        </ul>
+      ) : (
+        <p className="rounded-xl border border-dashed border-border px-3 py-5 text-center text-sm text-muted-foreground">
+          {emptyMessage}
+        </p>
+      )}
+    </section>
+  )
+}
+
+function TaskRow({ task, onToggle, onDelete, onMoveToTomorrow, onActionChange }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    if (!menuOpen) return undefined
+
+    function handlePointerDown(event) {
+      if (!menuRef.current?.contains(event.target)) setMenuOpen(false)
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') setMenuOpen(false)
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [menuOpen])
+
+  function runAction(action) {
+    setMenuOpen(false)
+    action(task)
+  }
+
+  return (
+    <li className="flex items-center gap-3 rounded-xl border border-border bg-background/50 px-3 py-2.5 transition-colors hover:border-primary/20">
+      <button
+        type="button"
+        aria-label={task.completed ? 'Mark task incomplete' : 'Complete task'}
+        aria-pressed={task.completed}
+        onClick={() => onToggle(task)}
+        className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border transition ${
+          task.completed
+            ? 'border-primary bg-primary text-primary-foreground'
+            : 'border-border text-transparent hover:border-primary'
+        }`}
+      >
+        <Check className="h-3.5 w-3.5" />
+      </button>
+      <span className={`min-w-0 flex-1 break-words text-sm ${task.completed ? 'text-muted-foreground line-through' : ''}`}>
+        {task.title}
+      </span>
+      <div className="relative shrink-0" ref={menuRef}>
+        <button
+          type="button"
+          aria-label={`Actions for ${task.title}`}
+          aria-haspopup="true"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((current) => !current)}
+          className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground transition hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <MoreHorizontal className="h-5 w-5" />
+        </button>
+        {menuOpen ? (
+          <div className="absolute right-0 top-full z-30 mt-1.5 w-64 rounded-xl border border-border bg-popover p-2 text-popover-foreground shadow-xl">
+            {!task.completed ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => runAction(onMoveToTomorrow)}
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition hover:bg-accent"
+                >
+                  <CalendarClock className="h-4 w-4 text-primary" />
+                  Move to tomorrow
+                </button>
+                <div className="border-t border-border px-1 py-2">
+                  <p className="mb-1 px-1 text-[11px] font-medium text-muted-foreground">If unfinished today</p>
+                  <TaskPolicyDropdown
+                    ariaLabel={`If not completed today: ${task.title}`}
+                    value={task.incompleteAction || DEFAULT_INCOMPLETE_ACTION}
+                    onChange={(value) => onActionChange(task, value)}
+                    compact
+                  />
+                </div>
+              </>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => runAction(onDelete)}
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-destructive transition hover:bg-destructive/10"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete task
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </li>
   )
 }
 

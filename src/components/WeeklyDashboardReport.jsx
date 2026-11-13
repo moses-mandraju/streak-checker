@@ -1,6 +1,5 @@
 import { getDashboardDateKeys, getFrequencyType, getScheduleProgress, getWeeklyHabitInsights } from '../utils/date'
 import { Card, CardContent } from './ui/card'
-import TodaysTodo from './TodaysTodo'
 import HabitTypeIcon from './HabitTypeIcon'
 
 function reportFor(habits, category) {
@@ -818,8 +817,6 @@ export default function WeeklyDashboardReport({
           Your performance over the past 7 days.
         </p>
       </div>
-
-      <TodaysTodo />
 
       <div className="grid gap-5 lg:grid-cols-2">
 

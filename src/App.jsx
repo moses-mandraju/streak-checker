@@ -5,6 +5,7 @@ import AuthLayout from './layouts/AuthLayout'
 import ProtectedRoute from './components/ProtectedRoute'
 import DashboardPage from './pages/DashboardPage'
 import HabitsPage from './pages/HabitsPage'
+import TodoPage from './pages/TodoPage'
 import CalendarPage from './pages/CalendarPage'
 import StatisticsPage from './pages/StatisticsPage'
 import ProfilePage from './pages/ProfilePage'
@@ -26,6 +27,7 @@ function App() {
           <Route element={<AppLayout />}>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/habits" element={<HabitsPage />} />
+            <Route path="/todo" element={<TodoPage />} />
             <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/statistics" element={<StatisticsPage />} />
             <Route path="/profile" element={<ProfilePage />} />

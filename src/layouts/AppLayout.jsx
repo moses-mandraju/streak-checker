@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import {
   CheckCircle2,
   LayoutDashboard,
+  ListTodo,
   LogOut,
   Moon,
   Sun,
@@ -23,6 +24,7 @@ import HabitlyLogo from '../components/HabitlyLogo'
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/habits', label: 'Habits', icon: CheckCircle2 },
+  { to: '/todo', label: 'To-Do', icon: ListTodo },
   { to: '/profile', label: 'Profile', icon: User },
 ]
 
@@ -49,7 +51,7 @@ export default function AppLayout() {
     <div className="min-h-screen bg-background text-foreground">
       <aside className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 px-2 py-2 backdrop-blur md:inset-y-0 md:left-0 md:right-auto md:w-64 md:border-r md:border-t-0 md:px-4 md:py-5">
         <div className="hidden md:flex"><HabitlyLogo /></div>
-        <nav className="grid grid-cols-3 gap-1 md:mt-8 md:flex md:flex-col md:gap-2">
+        <nav className="grid grid-cols-4 gap-1 md:mt-8 md:flex md:flex-col md:gap-2">
           {navItems.map((item) => (
             <NavLink
               key={item.to}

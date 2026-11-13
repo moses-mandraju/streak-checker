@@ -19,6 +19,7 @@ import {
 } from '../services/habitService'
 import { todayKey, getCompletionStats, getCurrentStreak, getFrequencyType, getLastStreak, getLongestStreak, getStreakUnit, calculateStreaksFromHistory } from '../utils/date'
 import { playCompletionSound } from '../utils/completionSound'
+import { getHabitNavigation } from '../utils/habit-navigation'
 import { useHabitStore } from '../store/habitStore'
 import { Button } from './ui/button'
 import { Card, CardContent } from './ui/card'
@@ -77,13 +78,13 @@ export default function HabitDetailDialog({
   const streakUnit = getStreakUnit(activeHabit)
   const totalCompletedDays = (activeHabit.completionHistory || []).length
   const isDailyHabit = getFrequencyType(activeHabit) === 'daily'
-  const habitIndex = habits.findIndex((item) => item.id === activeHabit.id)
-  const hasHabitNavigation = habits.length > 1 && habitIndex >= 0
+  const habitNavigation = getHabitNavigation(habits, activeHabit)
 
   function navigateHabit(direction) {
-    if (!hasHabitNavigation) return
-    const nextIndex = (habitIndex + direction + habits.length) % habits.length
-    onNavigate?.(habits[nextIndex])
+    const target = direction < 0
+      ? habitNavigation.previous
+      : habitNavigation.next
+    if (target) onNavigate?.(target)
   }
 
   async function handleComplete() {
@@ -183,7 +184,7 @@ export default function HabitDetailDialog({
   return (
     <Dialog
       open={open}
-      title={<div className="flex items-center gap-1"><Button aria-label="Previous habit" className="h-8 w-8" disabled={!hasHabitNavigation} size="icon" variant="ghost" onClick={() => navigateHabit(-1)}><ChevronLeft className="h-4 w-4" /></Button><span className="max-w-44 truncate">{activeHabit.title}</span><Button aria-label="Next habit" className="h-8 w-8" disabled={!hasHabitNavigation} size="icon" variant="ghost" onClick={() => navigateHabit(1)}><ChevronRight className="h-4 w-4" /></Button></div>}
+      title={<div className="flex items-center gap-1"><Button aria-label="Previous habit" className="h-8 w-8" disabled={!habitNavigation.previous} size="icon" variant="ghost" onClick={() => navigateHabit(-1)}><ChevronLeft className="h-4 w-4" /></Button><span className="max-w-44 truncate">{activeHabit.title}</span><Button aria-label="Next habit" className="h-8 w-8" disabled={!habitNavigation.next} size="icon" variant="ghost" onClick={() => navigateHabit(1)}><ChevronRight className="h-4 w-4" /></Button></div>}
       onOpenChange={onOpenChange}
     >
       <div className="space-y-5">
