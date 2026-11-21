@@ -1,1 +1,1 @@
-export const DEFAULT_INCOMPLETE_ACTION = 'move-to-tomorrow'
+export const DEFAULT_INCOMPLETE_ACTION = 'keep'

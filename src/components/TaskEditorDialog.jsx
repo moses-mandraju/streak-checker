@@ -24,6 +24,7 @@ function getInitialValues(task, selectedDate) {
     startTime: task?.startTime || '',
     endTime: task?.endTime || '',
     allDay: Boolean(task?.allDay),
+    carryForward: Boolean(task?.carryForward),
     notificationEnabled: Boolean(task?.notificationEnabled),
     reminderMinutesBefore: Number(task?.reminderMinutesBefore) || 0,
     timezone: task?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
@@ -123,6 +124,21 @@ export default function TaskEditorDialog({
             onChange={(event) => updateValue('dueDate', event.target.value)}
           />
         </Field>
+
+        <label className="flex items-start gap-2 rounded-xl border border-border bg-background/50 p-3 text-sm">
+          <input
+            type="checkbox"
+            checked={values.carryForward}
+            onChange={(event) => updateValue('carryForward', event.target.checked)}
+            className="mt-0.5 h-4 w-4 accent-primary"
+          />
+          <span>
+            <span className="block font-medium">Move to the next day if not completed</span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              When enabled, an unfinished task moves forward each day in your time zone until completed.
+            </span>
+          </span>
+        </label>
 
         <label className="flex items-center gap-2 text-sm">
           <input
