@@ -1,4 +1,4 @@
-import { getMessaging, getToken } from 'firebase/messaging'
+import { getMessaging, getToken, isSupported } from 'firebase/messaging'
 import { db, firebaseApp, isFirebaseConfigured } from './config'
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { getDeviceFingerprint } from '../utils/deviceFingerprint'
@@ -41,8 +41,16 @@ export async function getMessagingToken() {
     throw new Error('Firebase is not configured yet.')
   }
 
+  if (!('Notification' in window) || Notification.permission !== 'granted') {
+    throw new Error('Allow notifications in your browser or device settings first.')
+  }
+
   if (!('serviceWorker' in navigator)) {
     throw new Error('Service workers are not supported in this browser.')
+  }
+
+  if (!(await isSupported())) {
+    throw new Error('Push notifications are not supported in this browser or app mode.')
   }
 
   const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY
@@ -50,11 +58,10 @@ export async function getMessagingToken() {
     throw new Error('Missing VITE_FIREBASE_VAPID_KEY environment variable.')
   }
 
-  const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-    scope: '/'
-  })
-
-  await navigator.serviceWorker.ready
+  const registration = await navigator.serviceWorker.ready
+  if (!registration.active) {
+    throw new Error('The app service worker is not active yet. Reopen the app and try again.')
+  }
   const messaging = getMessaging(firebaseApp)
   return getToken(messaging, { vapidKey, serviceWorkerRegistration: registration })
 }

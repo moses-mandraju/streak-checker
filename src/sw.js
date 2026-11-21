@@ -13,6 +13,8 @@ onBackgroundMessage(messaging, (payload) => {
   const notificationOptions = {
     body: payload.notification?.body || 'Open the app to keep your streak going.',
     icon: '/favicon.svg',
+    tag: payload.data?.tag,
+    renotify: false,
   }
 
   self.registration.showNotification(notificationTitle, notificationOptions)

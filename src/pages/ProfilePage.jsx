@@ -1,4 +1,5 @@
-import { LogOut, Mail, User, Volume2, VolumeX } from 'lucide-react'
+import { useState } from 'react'
+import { Bell, LogOut, Mail, User, Volume2, VolumeX } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/PageHeader'
 import { Button } from '../components/ui/button'
@@ -7,11 +8,37 @@ import { logoutUser } from '../firebase/auth'
 import { useAuthStore } from '../store/authStore'
 import { useSettingsStore } from '../store/settingsStore'
 import ThemeSelector from '../components/ThemeSelector'
+import {
+  getMessagingToken,
+  requestNotificationPermission,
+  saveDeviceToken,
+} from '../firebase/messaging'
 
 export default function ProfilePage() {
   const user = useAuthStore((state) => state.user)
   const soundEnabled = useSettingsStore((state) => state.soundEnabled)
   const setSoundEnabled = useSettingsStore((state) => state.setSoundEnabled)
+  const [permission, setPermission] = useState(() =>
+    typeof Notification === 'undefined' ? 'unsupported' : Notification.permission,
+  )
+
+  async function handleEnableNotifications() {
+    try {
+      await requestNotificationPermission()
+      setPermission(Notification.permission)
+      const token = await getMessagingToken()
+      if (!token) {
+        throw new Error('This device did not return a push notification token.')
+      }
+      await saveDeviceToken(user.uid, token)
+      toast.success('Push notifications enabled for this device.')
+    } catch (error) {
+      if (typeof Notification !== 'undefined') {
+        setPermission(Notification.permission)
+      }
+      toast.error(error?.message || 'Unable to enable push notifications.')
+    }
+  }
 
   async function handleLogout() {
     try {
@@ -73,6 +100,38 @@ export default function ProfilePage() {
                   <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${soundEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                 </span>
               </button>
+            </div>
+
+            <div className="mt-6 border-t border-border pt-6">
+              <p className="mb-3 text-sm font-semibold">Push notifications</p>
+              <div className="flex flex-col gap-3 rounded-xl border border-border bg-secondary/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <Bell className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold">
+                      {permission === 'granted'
+                        ? 'Notifications are allowed on this device'
+                        : permission === 'denied'
+                          ? 'Notifications are blocked on this device'
+                          : 'Enable reminders on this device'}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {permission === 'denied'
+                        ? 'Change the notification permission in your browser or device settings.'
+                        : 'On iPhone and iPad, install this app to your Home Screen and use iOS/iPadOS 16.4 or later.'}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  className="shrink-0"
+                  disabled={permission === 'denied' || permission === 'unsupported'}
+                  onClick={handleEnableNotifications}
+                >
+                  {permission === 'granted' ? 'Refresh registration' : 'Enable notifications'}
+                </Button>
+              </div>
             </div>
           </div>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
