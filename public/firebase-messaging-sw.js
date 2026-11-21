@@ -22,7 +22,7 @@ messaging.onBackgroundMessage((payload) => {
     body,
     icon: '/favicon.svg',
     tag,
-    renotify: true,
+    renotify: false,
     requireInteraction: true
   })
 })

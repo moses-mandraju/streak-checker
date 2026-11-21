@@ -5,21 +5,62 @@ import {
   deleteTaskDocument,
 } from '../firebase/firestore'
 import { DATE_KEY, todayKey } from '../utils/date'
-import { DEFAULT_INCOMPLETE_ACTION, getOverdueTaskAction } from '../utils/task-lifecycle'
+import { DEFAULT_INCOMPLETE_ACTION } from '../utils/task-lifecycle'
 
-export function createTask(userId, title, incompleteAction = DEFAULT_INCOMPLETE_ACTION) {
+export function createTask(userId, task, incompleteAction = DEFAULT_INCOMPLETE_ACTION) {
+  const values = typeof task === 'string'
+    ? { title: task, dueDate: todayKey(), incompleteAction }
+    : task
+
   return createTaskDocument(userId, {
-    title: title.trim(),
-    dueDate: todayKey(),
+    title: values.title.trim(),
+    description: values.description?.trim() || '',
+    dueDate: values.dueDate || todayKey(),
+    startTime: values.startTime || '',
+    endTime: values.endTime || '',
+    allDay: Boolean(values.allDay),
     completed: false,
-    incompleteAction,
+    incompleteAction: values.incompleteAction || DEFAULT_INCOMPLETE_ACTION,
+    notificationEnabled: Boolean(values.notificationEnabled),
+    reminderMinutesBefore: Number(values.reminderMinutesBefore) || 0,
+    reminderStatus: values.notificationEnabled ? 'pending' : 'disabled',
+    reminderClaimedAt: '',
+    reminderSentAt: '',
+    timezone: values.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
     createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  })
+}
+
+export function updateTask(userId, taskId, values) {
+  return updateTaskDocument(userId, taskId, {
+    title: values.title.trim(),
+    description: values.description?.trim() || '',
+    dueDate: values.dueDate,
+    startTime: values.startTime || '',
+    endTime: values.endTime || '',
+    allDay: Boolean(values.allDay),
+    notificationEnabled: Boolean(values.notificationEnabled),
+    reminderMinutesBefore: Number(values.reminderMinutesBefore) || 0,
+    reminderStatus: values.notificationEnabled
+      ? values.completed ? 'cancelled' : 'pending'
+      : 'disabled',
+    reminderClaimedAt: '',
+    reminderSentAt: '',
+    timezone: values.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+    updatedAt: new Date().toISOString(),
   })
 }
 
 export function toggleTask(userId, task) {
   return updateTaskDocument(userId, task.id, {
     completed: !task.completed,
+    reminderStatus: !task.completed && task.notificationEnabled
+      ? 'cancelled'
+      : task.notificationEnabled
+        ? 'pending'
+        : 'disabled',
+    updatedAt: new Date().toISOString(),
   })
 }
 
@@ -28,24 +69,20 @@ export function deleteTask(userId, taskId) {
 }
 
 export function setTaskIncompleteAction(userId, taskId, incompleteAction) {
-  return updateTaskDocument(userId, taskId, { incompleteAction })
+  return updateTaskDocument(userId, taskId, {
+    incompleteAction,
+    updatedAt: new Date().toISOString(),
+  })
 }
 
-export function moveTaskToTomorrow(userId, taskId) {
+export function moveTaskToTomorrow(userId, task) {
   const tomorrow = format(
     addDays(new Date(`${todayKey()}T00:00:00`), 1),
     DATE_KEY,
   )
-  return updateTaskDocument(userId, taskId, { dueDate: tomorrow })
-}
-
-export function reconcileOverdueTask(userId, task, today = todayKey()) {
-  const action = getOverdueTaskAction(task, today)
-  if (!action) return Promise.resolve()
-
-  if (action.type === 'delete') {
-    return deleteTaskDocument(userId, task.id)
-  }
-
-  return updateTaskDocument(userId, task.id, { dueDate: action.dueDate })
+  return updateTaskDocument(userId, task.id, {
+    dueDate: tomorrow,
+    reminderStatus: task.notificationEnabled ? 'pending' : 'disabled',
+    updatedAt: new Date().toISOString(),
+  })
 }

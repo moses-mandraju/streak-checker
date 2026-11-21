@@ -1,69 +1,95 @@
-import { CalendarClock, Check, ChevronDown, MoreHorizontal, Plus, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  addMonths,
+  format,
+  isSameMonth,
+  isToday,
+  subMonths,
+} from 'date-fns'
+import {
+  CalendarDays,
+  CalendarPlus,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Trash2,
+} from 'lucide-react'
+import { useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
 
+import { deleteTask, moveTaskToTomorrow, toggleTask, createTask } from '../services/taskService'
+import { DATE_KEY, todayKey } from '../utils/date'
 import {
-  createTask,
-  deleteTask,
-  moveTaskToTomorrow,
-  setTaskIncompleteAction,
-  toggleTask,
-} from '../services/taskService'
-import { todayKey } from '../utils/date'
-import { DEFAULT_INCOMPLETE_ACTION } from '../utils/task-lifecycle'
+  compareTaskTimes,
+  getMonthCalendarDays,
+  getTasksForView,
+  taskTimeLabel,
+} from '../utils/task-planner'
 import { useAuthStore } from '../store/authStore'
 import { useTaskStore } from '../store/taskStore'
 import { Button } from './ui/button'
 import { Card, CardContent } from './ui/card'
 import { Input } from './ui/input'
+import TaskEditorDialog from './TaskEditorDialog'
 
-const taskPolicies = [
-  {
-    value: 'move-to-tomorrow',
-    label: 'Move to tomorrow',
-    description: 'Keep it on your list for the next day.',
-    Icon: CalendarClock,
-  },
-  {
-    value: 'delete-at-end-of-day',
-    label: 'Delete at end of day',
-    description: 'Remove it if it is still incomplete.',
-    Icon: Trash2,
-  },
+const views = [
+  { value: 'today', label: 'Today' },
+  { value: 'upcoming', label: 'Upcoming' },
+  { value: 'calendar', label: 'Calendar' },
 ]
+
+const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
 export default function TodaysTodo() {
   const user = useAuthStore((state) => state.user)
   const tasks = useTaskStore((state) => state.tasks)
   const loading = useTaskStore((state) => state.loading)
-  const [title, setTitle] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [incompleteAction, setIncompleteAction] = useState(DEFAULT_INCOMPLETE_ACTION)
+  const [view, setView] = useState('today')
+  const [selectedDate, setSelectedDate] = useState(todayKey())
+  const [monthDate, setMonthDate] = useState(new Date())
+  const [quickTitle, setQuickTitle] = useState('')
+  const [quickSaving, setQuickSaving] = useState(false)
+  const [editorOpen, setEditorOpen] = useState(false)
+  const [editingTask, setEditingTask] = useState(null)
 
-  const todaysTasks = useMemo(
-    () => tasks.filter((task) => task.dueDate === todayKey()),
-    [tasks],
+  const tasksByDate = useMemo(() => {
+    const dates = new Map()
+    tasks.forEach((task) => {
+      if (!task.dueDate) return
+      const current = dates.get(task.dueDate) || []
+      dates.set(task.dueDate, [...current, task])
+    })
+    return dates
+  }, [tasks])
+
+  const visibleTasks = useMemo(
+    () => getTasksForView(tasks, view, todayKey(), selectedDate),
+    [tasks, selectedDate, view],
   )
-  const pendingTasks = todaysTasks.filter((task) => !task.completed)
-  const completedTasks = todaysTasks.filter((task) => task.completed)
-  const completionPercent = todaysTasks.length
-    ? Math.round((completedTasks.length / todaysTasks.length) * 100)
-    : 0
 
-  async function handleAdd(event) {
+  function selectDate(date) {
+    const dateKey = format(date, DATE_KEY)
+    setSelectedDate(dateKey)
+    setMonthDate(date)
+    setView('calendar')
+  }
+
+  async function handleQuickAdd(event) {
     event.preventDefault()
-    const trimmed = title.trim()
-    if (!trimmed) return
+    const title = quickTitle.trim()
+    if (!title) return
 
-    setSaving(true)
+    setQuickSaving(true)
     try {
-      await createTask(user.uid, trimmed, incompleteAction)
-      setTitle('')
-      setIncompleteAction(DEFAULT_INCOMPLETE_ACTION)
+      await createTask(user.uid, { title, dueDate: selectedDate })
+      setQuickTitle('')
     } catch (error) {
       toast.error(error?.message || 'Unable to add task.')
     } finally {
-      setSaving(false)
+      setQuickSaving(false)
     }
   }
 
@@ -85,184 +111,338 @@ export default function TodaysTodo() {
 
   async function handleMoveToTomorrow(task) {
     try {
-      await moveTaskToTomorrow(user.uid, task.id)
+      await moveTaskToTomorrow(user.uid, task)
     } catch (error) {
-      toast.error(error?.message || 'Unable to move task.')
+      toast.error(error?.message || 'Unable to reschedule task.')
     }
   }
 
-  async function handleIncompleteActionChange(task, value) {
-    try {
-      await setTaskIncompleteAction(user.uid, task.id, value)
-    } catch (error) {
-      toast.error(error?.message || 'Unable to update task settings.')
-    }
+  function openCreateEditor() {
+    setEditingTask(null)
+    setEditorOpen(true)
   }
+
+  function openEditEditor(task) {
+    setEditingTask(task)
+    setSelectedDate(task.dueDate || todayKey())
+    setMonthDate(task.dueDate ? new Date(`${task.dueDate}T00:00:00`) : new Date())
+    setEditorOpen(true)
+  }
+
+  const heading = view === 'today'
+    ? 'Today and overdue'
+    : view === 'upcoming'
+      ? 'Upcoming tasks'
+      : format(parseSelectedDate(selectedDate), 'EEEE, MMMM d')
 
   return (
     <div className="space-y-5">
-      <Card className="overflow-hidden border-primary/20">
-        <CardContent className="p-4 sm:p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-                Daily progress
-              </p>
-              <h2 className="mt-1 text-xl font-semibold">Today's focus</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {completedTasks.length} of {todaysTasks.length} tasks completed
-              </p>
-            </div>
-            <span className="rounded-2xl bg-primary/10 px-3 py-2 text-lg font-semibold tabular-nums text-primary">
-              {completionPercent}%
-            </span>
-          </div>
-          <div
-            className="mt-4 h-2 overflow-hidden rounded-full bg-secondary"
-            role="progressbar"
-            aria-label="Today's task completion"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={completionPercent}
-          >
-            <div
-              className="h-full rounded-full bg-primary transition-all duration-500"
-              style={{ width: `${completionPercent}%` }}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex rounded-xl border border-border bg-card/70 p-1" role="tablist" aria-label="Task view">
+          {views.map((item) => (
+            <button
+              key={item.value}
+              type="button"
+              role="tab"
+              aria-selected={view === item.value}
+              onClick={() => {
+                setView(item.value)
+                if (item.value === 'today') {
+                  setSelectedDate(todayKey())
+                  setMonthDate(new Date())
+                }
+              }}
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition sm:px-4 ${
+                view === item.value
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <Button onClick={openCreateEditor}>
+          <CalendarPlus className="h-4 w-4" />
+          <span>Schedule task</span>
+        </Button>
+      </div>
 
-      <form onSubmit={handleAdd} className="flex flex-col gap-3 rounded-2xl border border-primary/20 bg-card p-3 shadow-sm sm:flex-row sm:items-center sm:p-4">
-        <Input
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          placeholder="What would you like to get done?"
-          aria-label="New task"
-          maxLength={120}
-          className="h-11 flex-1 bg-background/60"
-        />
-        <div className="flex flex-wrap items-center justify-between gap-2 sm:justify-end">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="hidden sm:inline">If unfinished:</span>
-            <TaskPolicyDropdown
-              ariaLabel="If not completed today"
-              value={incompleteAction}
-              onChange={setIncompleteAction}
-              compact
-            />
+      <MiniCalendar
+        monthDate={monthDate}
+        selectedDate={selectedDate}
+        tasksByDate={tasksByDate}
+        onPrevious={() => setMonthDate((month) => subMonths(month, 1))}
+        onNext={() => setMonthDate((month) => addMonths(month, 1))}
+        onSelectDate={selectDate}
+      />
+
+      <section aria-label={heading}>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[.14em] text-primary">
+              {view === 'calendar' ? 'Selected date' : view}
+            </p>
+            <h2 className="mt-1 text-lg font-semibold">{heading}</h2>
           </div>
-          <Button type="submit" disabled={saving || !title.trim()}>
+          <span className="rounded-full bg-secondary px-3 py-1 text-xs text-muted-foreground">
+            {visibleTasks.length} task{visibleTasks.length === 1 ? '' : 's'}
+          </span>
+        </div>
+
+        {loading ? (
+          <div className="space-y-2">
+            <div className="h-16 animate-pulse rounded-xl bg-muted" />
+            <div className="h-16 animate-pulse rounded-xl bg-muted" />
+          </div>
+        ) : (
+          <TaskScheduleList
+            tasks={visibleTasks}
+            view={view}
+            selectedDate={selectedDate}
+            onToggle={handleToggle}
+            onEdit={openEditEditor}
+            onDelete={handleDelete}
+            onMoveToTomorrow={handleMoveToTomorrow}
+            onCreate={openCreateEditor}
+          />
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-primary/20 bg-card p-4 sm:p-5">
+        <div className="mb-3">
+          <p className="text-xs font-semibold uppercase tracking-[.14em] text-primary">Quick add</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Add an anytime task for {format(parseSelectedDate(selectedDate), 'MMM d')}.
+          </p>
+        </div>
+        <form onSubmit={handleQuickAdd} className="flex gap-2">
+          <Input
+            value={quickTitle}
+            onChange={(event) => setQuickTitle(event.target.value)}
+            placeholder="Buy groceries, finish a document..."
+            aria-label="Quick-add an anytime task"
+            maxLength={120}
+            className="h-11 bg-background/60"
+          />
+          <Button type="submit" disabled={quickSaving || !quickTitle.trim()} aria-label="Add anytime task">
             <Plus className="h-4 w-4" />
-            Add task
+            <span className="hidden sm:inline">Add</span>
           </Button>
-        </div>
-      </form>
+        </form>
+      </section>
 
-      {loading ? (
-        <div className="space-y-3">
-          <div className="h-28 animate-pulse rounded-2xl bg-muted" />
-          <div className="h-24 animate-pulse rounded-2xl bg-muted" />
-        </div>
-      ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <TaskSection
-            title="Pending"
-            count={pendingTasks.length}
-            tasks={pendingTasks}
-            emptyMessage="You're all caught up. Add a task whenever you're ready."
-            onToggle={handleToggle}
-            onDelete={handleDelete}
-            onMoveToTomorrow={handleMoveToTomorrow}
-            onActionChange={handleIncompleteActionChange}
-          />
-          <TaskSection
-            title="Completed"
-            count={completedTasks.length}
-            tasks={completedTasks}
-            emptyMessage="Completed tasks will appear here."
-            onToggle={handleToggle}
-            onDelete={handleDelete}
-            onMoveToTomorrow={handleMoveToTomorrow}
-            onActionChange={handleIncompleteActionChange}
-          />
-        </div>
-      )}
+      <TaskEditorDialog
+        key={`${editingTask?.id || 'new'}-${selectedDate}`}
+        open={editorOpen}
+        onOpenChange={setEditorOpen}
+        task={editingTask}
+        selectedDate={editingTask?.dueDate || selectedDate}
+        userId={user.uid}
+      />
+
     </div>
   )
 }
 
-function TaskSection({
-  title,
-  count,
+function MiniCalendar({
+  monthDate,
+  selectedDate,
+  tasksByDate,
+  onPrevious,
+  onNext,
+  onSelectDate,
+}) {
+  const days = getMonthCalendarDays(monthDate)
+
+  return (
+    <Card className="border-primary/15">
+      <CardContent className="p-3 sm:p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-semibold">{format(monthDate, 'MMMM yyyy')}</h2>
+          </div>
+          <div className="flex items-center gap-1">
+            <CalendarTodayButton onClick={() => onSelectDate(new Date())} />
+            <button type="button" aria-label="Previous month" onClick={onPrevious} className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground">
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button type="button" aria-label="Next month" onClick={onNext} className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground">
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-7 gap-y-1">
+          {weekdays.map((day, index) => (
+            <span key={`${day}-${index}`} className="pb-1 text-center text-[10px] font-semibold text-muted-foreground sm:text-xs">
+              {day}
+            </span>
+          ))}
+          {days.map((date) => {
+            const dateKey = format(date, DATE_KEY)
+            const selected = dateKey === selectedDate
+            const today = isToday(date)
+            const hasTasks = (tasksByDate.get(dateKey) || []).length > 0
+
+            return (
+              <button
+                key={dateKey}
+                type="button"
+                aria-label={`${format(date, 'MMMM d, yyyy')}${hasTasks ? ', has tasks' : ''}${selected ? ', selected' : ''}${today ? ', today' : ''}`}
+                aria-pressed={selected}
+                onClick={() => onSelectDate(date)}
+                className={`mx-auto flex h-9 w-9 flex-col items-center justify-center rounded-full text-xs transition sm:h-10 sm:w-10 ${
+                  selected
+                    ? 'bg-primary font-semibold text-primary-foreground shadow-sm'
+                    : today
+                      ? 'bg-primary/10 font-semibold text-primary ring-1 ring-primary/60'
+                      : 'text-foreground hover:bg-accent'
+                } ${!isSameMonth(date, monthDate) ? 'opacity-35' : ''}`}
+              >
+                <span>{format(date, 'd')}</span>
+                <span className={`mt-0.5 h-1 w-1 rounded-full ${hasTasks ? selected ? 'bg-primary-foreground' : 'bg-primary' : 'bg-transparent'}`} />
+              </button>
+            )
+          })}
+        </div>
+        <div className="mt-2 flex items-center gap-3 text-[10px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary/40 ring-1 ring-primary" />Today</span>
+          <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" />Selected</span>
+          <span className="inline-flex items-center gap-1"><span className="h-1 w-1 rounded-full bg-primary" />Has tasks</span>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function CalendarTodayButton({ onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="mr-1 rounded-lg px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10"
+    >
+      Today
+    </button>
+  )
+}
+
+function TaskScheduleList({
   tasks,
-  emptyMessage,
+  view,
+  selectedDate,
   onToggle,
+  onEdit,
   onDelete,
   onMoveToTomorrow,
-  onActionChange,
+  onCreate,
 }) {
-  return (
-    <section className="rounded-2xl border border-border bg-card/70 p-4 sm:p-5" aria-label={`${title} tasks`}>
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="font-semibold">{title}</h3>
-        <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">{count}</span>
+  if (!tasks.length) {
+    return (
+      <div className="rounded-2xl border border-dashed border-border bg-card/50 px-4 py-8 text-center">
+        <Clock3 className="mx-auto h-6 w-6 text-muted-foreground/60" />
+        <p className="mt-2 text-sm font-medium">Nothing planned here yet</p>
+        <p className="mt-1 text-xs text-muted-foreground">Schedule a task or add an anytime task below.</p>
+        {view === 'calendar' ? (
+          <Button className="mt-4" variant="outline" onClick={onCreate}>
+            <CalendarPlus className="h-4 w-4" />
+            Schedule task
+          </Button>
+        ) : null}
       </div>
-      {tasks.length ? (
-        <ul className="space-y-2">
-          {tasks.map((task) => (
-            <TaskRow
-              key={task.id}
-              task={task}
-              onToggle={onToggle}
-              onDelete={onDelete}
-              onMoveToTomorrow={onMoveToTomorrow}
-              onActionChange={onActionChange}
-            />
-          ))}
-        </ul>
-      ) : (
-        <p className="rounded-xl border border-dashed border-border px-3 py-5 text-center text-sm text-muted-foreground">
-          {emptyMessage}
-        </p>
-      )}
+    )
+  }
+
+  const dateGroups = view === 'upcoming' || view === 'today'
+    ? groupByDate(tasks)
+    : [{ date: selectedDate, tasks }]
+
+  return (
+    <div className="space-y-4">
+      {dateGroups.map(({ date, tasks: dateTasks }) => (
+        <div key={date} className="space-y-3">
+          {dateGroups.length > 1 || view === 'today' ? (
+            <p className="px-1 text-xs font-medium text-muted-foreground">
+              {date === todayKey() ? 'Today' : format(parseSelectedDate(date), 'EEE, MMM d')}
+              {date < todayKey() ? ' · Overdue' : ''}
+            </p>
+          ) : null}
+          <TaskBucket
+            title="Scheduled"
+            tasks={dateTasks.filter((task) => task.allDay || task.startTime || task.endTime)}
+            onToggle={onToggle}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onMoveToTomorrow={onMoveToTomorrow}
+          />
+          <TaskBucket
+            title="Anytime"
+            tasks={dateTasks.filter((task) => !task.allDay && !task.startTime && !task.endTime)}
+            onToggle={onToggle}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onMoveToTomorrow={onMoveToTomorrow}
+          />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function groupByDate(tasks) {
+  const groups = new Map()
+  tasks.forEach((task) => {
+    const day = groups.get(task.dueDate) || []
+    groups.set(task.dueDate, [...day, task])
+  })
+  return [...groups.entries()].map(([date, groupedTasks]) => ({
+    date,
+    tasks: groupedTasks,
+  }))
+}
+
+function TaskBucket({ title, tasks, onToggle, onEdit, onDelete, onMoveToTomorrow }) {
+  if (!tasks.length) return null
+  const pending = tasks.filter((task) => !task.completed).sort(compareTaskTimes)
+  const completed = tasks.filter((task) => task.completed).sort(compareTaskTimes)
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-border bg-card/70">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        <span className="text-xs text-muted-foreground">{tasks.length}</span>
+      </div>
+      <ul className="divide-y divide-border">
+        {[...pending, ...completed].map((task) => (
+          <TaskRow
+            key={task.id}
+            task={task}
+            onToggle={onToggle}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onMoveToTomorrow={onMoveToTomorrow}
+          />
+        ))}
+      </ul>
     </section>
   )
 }
 
-function TaskRow({ task, onToggle, onDelete, onMoveToTomorrow, onActionChange }) {
+function TaskRow({ task, onToggle, onEdit, onDelete, onMoveToTomorrow }) {
   const [menuOpen, setMenuOpen] = useState(false)
-  const menuRef = useRef(null)
 
-  useEffect(() => {
-    if (!menuOpen) return undefined
-
-    function handlePointerDown(event) {
-      if (!menuRef.current?.contains(event.target)) setMenuOpen(false)
-    }
-
-    function handleKeyDown(event) {
-      if (event.key === 'Escape') setMenuOpen(false)
-    }
-
-    document.addEventListener('pointerdown', handlePointerDown)
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [menuOpen])
-
-  function runAction(action) {
+  function run(action) {
     setMenuOpen(false)
     action(task)
   }
 
   return (
-    <li className="flex items-center gap-3 rounded-xl border border-border bg-background/50 px-3 py-2.5 transition-colors hover:border-primary/20">
+    <li className={`flex items-center gap-3 px-3 py-3 sm:px-4 ${task.completed ? 'opacity-65' : ''}`}>
       <button
         type="button"
-        aria-label={task.completed ? 'Mark task incomplete' : 'Complete task'}
+        aria-label={task.completed ? `Mark ${task.title} incomplete` : `Complete ${task.title}`}
         aria-pressed={task.completed}
         onClick={() => onToggle(task)}
         className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border transition ${
@@ -273,51 +453,38 @@ function TaskRow({ task, onToggle, onDelete, onMoveToTomorrow, onActionChange })
       >
         <Check className="h-3.5 w-3.5" />
       </button>
-      <span className={`min-w-0 flex-1 break-words text-sm ${task.completed ? 'text-muted-foreground line-through' : ''}`}>
-        {task.title}
-      </span>
-      <div className="relative shrink-0" ref={menuRef}>
+      <div className="min-w-0 flex-1">
+        <p className={`break-words text-sm font-medium ${task.completed ? 'text-muted-foreground line-through' : ''}`}>
+          {task.title}
+        </p>
+        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+          <span>{taskTimeLabel(task)}</span>
+          {task.description ? <span className="truncate">· {task.description}</span> : null}
+          {task.notificationEnabled ? (
+            <span className="text-primary">
+              · {task.reminderStatus === 'sent' ? 'Reminder sent' : 'Reminder on'}
+            </span>
+          ) : null}
+        </p>
+      </div>
+      <div className="relative shrink-0">
         <button
           type="button"
-          aria-label={`Actions for ${task.title}`}
-          aria-haspopup="true"
+          aria-label={`More actions for ${task.title}`}
+          aria-haspopup="menu"
           aria-expanded={menuOpen}
-          onClick={() => setMenuOpen((current) => !current)}
-          className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground transition hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={() => setMenuOpen((open) => !open)}
+          className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
         >
           <MoreHorizontal className="h-5 w-5" />
         </button>
         {menuOpen ? (
-          <div className="absolute right-0 top-full z-30 mt-1.5 w-64 rounded-xl border border-border bg-popover p-2 text-popover-foreground shadow-xl">
+          <div className="absolute right-0 top-full z-30 mt-1 w-44 rounded-xl border border-border bg-popover p-1.5 shadow-xl">
+            <MenuAction icon={Pencil} label="Edit / reschedule" onClick={() => run(onEdit)} />
             {!task.completed ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => runAction(onMoveToTomorrow)}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition hover:bg-accent"
-                >
-                  <CalendarClock className="h-4 w-4 text-primary" />
-                  Move to tomorrow
-                </button>
-                <div className="border-t border-border px-1 py-2">
-                  <p className="mb-1 px-1 text-[11px] font-medium text-muted-foreground">If unfinished today</p>
-                  <TaskPolicyDropdown
-                    ariaLabel={`If not completed today: ${task.title}`}
-                    value={task.incompleteAction || DEFAULT_INCOMPLETE_ACTION}
-                    onChange={(value) => onActionChange(task, value)}
-                    compact
-                  />
-                </div>
-              </>
+              <MenuAction icon={CalendarDays} label="Move to tomorrow" onClick={() => run(onMoveToTomorrow)} />
             ) : null}
-            <button
-              type="button"
-              onClick={() => runAction(onDelete)}
-              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-destructive transition hover:bg-destructive/10"
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete task
-            </button>
+            <MenuAction destructive icon={Trash2} label="Delete" onClick={() => run(onDelete)} />
           </div>
         ) : null}
       </div>
@@ -325,120 +492,23 @@ function TaskRow({ task, onToggle, onDelete, onMoveToTomorrow, onActionChange })
   )
 }
 
-function TaskPolicyDropdown({ value, onChange, ariaLabel, compact = false }) {
-  const [open, setOpen] = useState(false)
-  const rootRef = useRef(null)
-  const triggerRef = useRef(null)
-  const optionRefs = useRef([])
-  const selectedPolicy = taskPolicies.find((policy) => policy.value === value) || taskPolicies[0]
-  const SelectedIcon = selectedPolicy.Icon
-
-  useEffect(() => {
-    if (!open) return undefined
-
-    function handlePointerDown(event) {
-      if (!rootRef.current?.contains(event.target)) setOpen(false)
-    }
-
-    function handleKeyDown(event) {
-      if (event.key === 'Escape') {
-        setOpen(false)
-        triggerRef.current?.focus()
-      }
-    }
-
-    document.addEventListener('pointerdown', handlePointerDown)
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [open])
-
-  useEffect(() => {
-    if (!open) return
-    const selectedIndex = taskPolicies.findIndex((policy) => policy.value === selectedPolicy.value)
-    optionRefs.current[selectedIndex]?.focus()
-  }, [open, selectedPolicy.value])
-
-  function focusOption(index) {
-    const nextIndex = (index + taskPolicies.length) % taskPolicies.length
-    optionRefs.current[nextIndex]?.focus()
-  }
-
-  function handleTriggerKeyDown(event) {
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      event.preventDefault()
-      setOpen(true)
-    }
-  }
-
-  function handleOptionKeyDown(event, index) {
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      event.preventDefault()
-      focusOption(index + (event.key === 'ArrowDown' ? 1 : -1))
-    }
-  }
-
-  function choosePolicy(policy) {
-    onChange(policy.value)
-    setOpen(false)
-    triggerRef.current?.focus()
-  }
-
+function MenuAction({ icon: Icon, label, onClick, destructive = false }) {
   return (
-    <div className="relative inline-flex max-w-full" ref={rootRef}>
-      <button
-        ref={triggerRef}
-        type="button"
-        aria-label={ariaLabel}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onKeyDown={handleTriggerKeyDown}
-        onClick={() => setOpen((current) => !current)}
-        className={`group inline-flex max-w-full items-center gap-2 rounded-lg border border-border bg-secondary/60 text-left text-foreground shadow-sm transition-colors hover:border-primary/40 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:focus-visible:ring-offset-background ${compact ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm'}`}
-      >
-        <span className={`grid shrink-0 place-items-center rounded-md bg-primary/10 text-primary ${compact ? 'h-6 w-6' : 'h-7 w-7'}`}>
-          <SelectedIcon className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
-        </span>
-        <span className="truncate">{selectedPolicy.label}</span>
-        <ChevronDown className={`shrink-0 text-muted-foreground transition-transform ${compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} ${open ? 'rotate-180' : ''}`} />
-      </button>
-
-      {open ? (
-        <div
-          className="absolute left-0 top-full z-50 mt-1.5 w-64 max-w-[calc(100vw-3rem)] rounded-xl border border-border bg-popover p-1.5 text-popover-foreground shadow-xl ring-1 ring-black/10"
-          role="menu"
-          aria-label={ariaLabel}
-        >
-          {taskPolicies.map((policy, index) => {
-            const Icon = policy.Icon
-            const selected = policy.value === selectedPolicy.value
-
-            return (
-              <button
-                key={policy.value}
-                ref={(element) => { optionRefs.current[index] = element }}
-                type="button"
-                role="menuitemradio"
-                aria-checked={selected}
-                onKeyDown={(event) => handleOptionKeyDown(event, index)}
-                onClick={() => choosePolicy(policy)}
-                className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${selected ? 'bg-primary/10' : 'hover:bg-accent'}`}
-              >
-                <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${selected ? 'bg-primary/15 text-primary' : 'bg-secondary text-muted-foreground'}`}>
-                  <Icon className="h-4 w-4" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-medium">{policy.label}</span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">{policy.description}</span>
-                </span>
-                {selected ? <Check className="h-4 w-4 shrink-0 text-primary" /> : null}
-              </button>
-            )
-          })}
-        </div>
-      ) : null}
-    </div>
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs transition hover:bg-accent ${
+        destructive ? 'text-destructive' : 'text-foreground'
+      }`}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+    </button>
   )
+}
+
+function parseSelectedDate(dateKey) {
+  const [year, month, day] = dateKey.split('-').map(Number)
+  return new Date(year, month - 1, day)
 }
