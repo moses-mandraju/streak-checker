@@ -6,6 +6,7 @@ import {
 } from '../firebase/firestore'
 import { DATE_KEY, todayKey } from '../utils/date'
 import { DEFAULT_INCOMPLETE_ACTION } from '../utils/task-lifecycle'
+import { getTaskReminderStatus } from '../utils/task-planner'
 
 export function createTask(userId, task, incompleteAction = DEFAULT_INCOMPLETE_ACTION) {
   const values = typeof task === 'string'
@@ -23,7 +24,7 @@ export function createTask(userId, task, incompleteAction = DEFAULT_INCOMPLETE_A
     incompleteAction: values.incompleteAction || DEFAULT_INCOMPLETE_ACTION,
     notificationEnabled: Boolean(values.notificationEnabled),
     reminderMinutesBefore: Number(values.reminderMinutesBefore) || 0,
-    reminderStatus: values.notificationEnabled ? 'pending' : 'disabled',
+    reminderStatus: getTaskReminderStatus(values.notificationEnabled),
     reminderClaimedAt: '',
     reminderSentAt: '',
     timezone: values.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
@@ -42,9 +43,7 @@ export function updateTask(userId, taskId, values) {
     allDay: Boolean(values.allDay),
     notificationEnabled: Boolean(values.notificationEnabled),
     reminderMinutesBefore: Number(values.reminderMinutesBefore) || 0,
-    reminderStatus: values.notificationEnabled
-      ? values.completed ? 'cancelled' : 'pending'
-      : 'disabled',
+    reminderStatus: getTaskReminderStatus(values.notificationEnabled, values.completed),
     reminderClaimedAt: '',
     reminderSentAt: '',
     timezone: values.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
@@ -55,11 +54,9 @@ export function updateTask(userId, taskId, values) {
 export function toggleTask(userId, task) {
   return updateTaskDocument(userId, task.id, {
     completed: !task.completed,
-    reminderStatus: !task.completed && task.notificationEnabled
-      ? 'cancelled'
-      : task.notificationEnabled
-        ? 'pending'
-        : 'disabled',
+    reminderStatus: getTaskReminderStatus(task.notificationEnabled, !task.completed),
+    reminderClaimedAt: '',
+    reminderSentAt: task.completed ? task.reminderSentAt || '' : '',
     updatedAt: new Date().toISOString(),
   })
 }
@@ -82,7 +79,9 @@ export function moveTaskToTomorrow(userId, task) {
   )
   return updateTaskDocument(userId, task.id, {
     dueDate: tomorrow,
-    reminderStatus: task.notificationEnabled ? 'pending' : 'disabled',
+    reminderStatus: getTaskReminderStatus(task.notificationEnabled),
+    reminderClaimedAt: '',
+    reminderSentAt: '',
     updatedAt: new Date().toISOString(),
   })
 }

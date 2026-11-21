@@ -119,6 +119,9 @@ export default function TaskEditorDialog({
               allDay: event.target.checked,
               startTime: event.target.checked ? '' : current.startTime,
               endTime: event.target.checked ? '' : current.endTime,
+              notificationEnabled: event.target.checked
+                ? current.notificationEnabled
+                : Boolean(current.startTime && current.notificationEnabled),
             }))}
             className="h-4 w-4 accent-primary"
           />

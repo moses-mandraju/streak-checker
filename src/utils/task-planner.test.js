@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   getMonthCalendarDays,
+  getTaskReminderStatus,
   getTasksForView,
   parseDateKey,
   taskTimeLabel,
@@ -49,6 +50,20 @@ test('task views retain overdue work and keep completed history in the appropria
   assert.equal(tasks.find((task) => task.id === 'overdue').dueDate, '2026-11-18')
 })
 
+test('legacy tasks missing optional date fields safely default to today', () => {
+  const tasks = [{ id: 'legacy-anytime', title: 'Legacy', completed: false }]
+
+  assert.deepEqual(
+    getTasksForView(tasks, 'today', '2026-11-21').map((task) => task.id),
+    ['legacy-anytime'],
+  )
+  assert.deepEqual(
+    getTasksForView(tasks, 'calendar', '2026-11-21', '2026-11-21').map((task) => task.id),
+    ['legacy-anytime'],
+  )
+  assert.deepEqual(getTasksForView(tasks, 'upcoming', '2026-11-21'), [])
+})
+
 test('task times require valid values and a later end, while allowing overlaps', () => {
   const baseTask = {
     title: 'Calendar event',
@@ -76,4 +91,10 @@ test('all-day and anytime tasks are labeled separately', () => {
   assert.equal(taskTimeLabel({ allDay: true }), 'All day')
   assert.equal(taskTimeLabel({}), 'Anytime')
   assert.equal(taskTimeLabel({ startTime: '09:30', endTime: '10:30' }), '09:30 – 10:30')
+})
+
+test('reminder state cancels on completion and returns to pending when reopened', () => {
+  assert.equal(getTaskReminderStatus(false), 'disabled')
+  assert.equal(getTaskReminderStatus(true), 'pending')
+  assert.equal(getTaskReminderStatus(true, true), 'cancelled')
 })

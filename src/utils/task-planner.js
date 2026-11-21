@@ -38,15 +38,17 @@ export function compareTaskTimes(left, right) {
 
 export function getTasksForView(tasks, view, today, selectedDate) {
   const selected = tasks.filter((task) => {
-    if (view === 'calendar') return task.dueDate === selectedDate
+    const dueDate = task.dueDate || today
+    if (view === 'calendar') return dueDate === selectedDate
     if (view === 'today') {
-      return task.dueDate <= today && (!task.completed || task.dueDate === today)
+      return dueDate <= today && (!task.completed || dueDate === today)
     }
-    return task.dueDate !== today && (task.dueDate > today || !task.completed)
+    return dueDate !== today && (dueDate > today || !task.completed)
   })
 
   return selected.sort((left, right) =>
-    left.dueDate.localeCompare(right.dueDate) || compareTaskTimes(left, right),
+    (left.dueDate || today).localeCompare(right.dueDate || today) ||
+      compareTaskTimes(left, right),
   )
 }
 
@@ -82,5 +84,10 @@ export function taskTimeLabel(task) {
   if (!task.startTime && !task.endTime) return 'Anytime'
   if (task.startTime && task.endTime) return `${task.startTime} – ${task.endTime}`
   return task.startTime || `Until ${task.endTime}`
+}
+
+export function getTaskReminderStatus(notificationEnabled, completed = false) {
+  if (!notificationEnabled) return 'disabled'
+  return completed ? 'cancelled' : 'pending'
 }
 

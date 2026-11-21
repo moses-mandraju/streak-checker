@@ -58,9 +58,9 @@ export default function TodaysTodo() {
   const tasksByDate = useMemo(() => {
     const dates = new Map()
     tasks.forEach((task) => {
-      if (!task.dueDate) return
-      const current = dates.get(task.dueDate) || []
-      dates.set(task.dueDate, [...current, task])
+      const dateKey = task.dueDate || todayKey()
+      const current = dates.get(dateKey) || []
+      dates.set(dateKey, [...current, task])
     })
     return dates
   }, [tasks])
@@ -232,14 +232,16 @@ export default function TodaysTodo() {
         </form>
       </section>
 
-      <TaskEditorDialog
-        key={`${editingTask?.id || 'new'}-${selectedDate}`}
-        open={editorOpen}
-        onOpenChange={setEditorOpen}
-        task={editingTask}
-        selectedDate={editingTask?.dueDate || selectedDate}
-        userId={user.uid}
-      />
+      {editorOpen ? (
+        <TaskEditorDialog
+          key={`${editingTask?.id || 'new'}-${selectedDate}`}
+          open={editorOpen}
+          onOpenChange={setEditorOpen}
+          task={editingTask}
+          selectedDate={editingTask?.dueDate || selectedDate}
+          userId={user.uid}
+        />
+      ) : null}
 
     </div>
   )
@@ -394,8 +396,9 @@ function TaskScheduleList({
 function groupByDate(tasks) {
   const groups = new Map()
   tasks.forEach((task) => {
-    const day = groups.get(task.dueDate) || []
-    groups.set(task.dueDate, [...day, task])
+    const dateKey = task.dueDate || todayKey()
+    const day = groups.get(dateKey) || []
+    groups.set(dateKey, [...day, task])
   })
   return [...groups.entries()].map(([date, groupedTasks]) => ({
     date,
@@ -460,9 +463,14 @@ function TaskRow({ task, onToggle, onEdit, onDelete, onMoveToTomorrow }) {
         <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
           <span>{taskTimeLabel(task)}</span>
           {task.description ? <span className="truncate">· {task.description}</span> : null}
-          {task.notificationEnabled ? (
+          {task.notificationEnabled && !task.completed ? (
             <span className="text-primary">
-              · {task.reminderStatus === 'sent' ? 'Reminder sent' : 'Reminder on'}
+              · {{
+                sent: 'Reminder sent',
+                missed: 'Reminder missed',
+                invalid: 'Reminder unavailable',
+                sending: 'Reminder sending',
+              }[task.reminderStatus] || 'Reminder on'}
             </span>
           ) : null}
         </p>
