@@ -16,7 +16,7 @@ import {
   Pencil,
   Trash2,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 
 import { deleteTask, moveTaskToTomorrow, toggleTask } from '../services/taskService'
@@ -396,10 +396,47 @@ function TaskBucket({ title, tasks, onToggle, onEdit, onDelete, onMoveToTomorrow
 
 function TaskRow({ task, onToggle, onEdit, onDelete, onMoveToTomorrow }) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [menuPlacement, setMenuPlacement] = useState('bottom')
+  const actionsRef = useRef(null)
+
+  useEffect(() => {
+    if (!menuOpen) return undefined
+
+    const timeoutId = window.setTimeout(() => setMenuOpen(false), 3000)
+    function dismissOutside(event) {
+      if (!actionsRef.current?.contains(event.target)) {
+        setMenuOpen(false)
+      }
+    }
+    function dismissOnEscape(event) {
+      if (event.key === 'Escape') setMenuOpen(false)
+    }
+
+    document.addEventListener('pointerdown', dismissOutside)
+    document.addEventListener('keydown', dismissOnEscape)
+    return () => {
+      window.clearTimeout(timeoutId)
+      document.removeEventListener('pointerdown', dismissOutside)
+      document.removeEventListener('keydown', dismissOnEscape)
+    }
+  }, [menuOpen])
 
   function run(action) {
     setMenuOpen(false)
     action(task)
+  }
+
+  function toggleMenu() {
+    const bounds = actionsRef.current?.getBoundingClientRect()
+    const menuHeight = task.completed ? 84 : 120
+    const bottomNavigationSpace = window.innerWidth < 768 ? 112 : 8
+    const spaceBelow = bounds
+      ? window.innerHeight - bounds.bottom - bottomNavigationSpace
+      : window.innerHeight
+    const spaceAbove = bounds ? bounds.top : 0
+
+    setMenuPlacement(spaceBelow < menuHeight && spaceAbove > spaceBelow ? 'top' : 'bottom')
+    setMenuOpen((open) => !open)
   }
 
   return (
@@ -436,19 +473,23 @@ function TaskRow({ task, onToggle, onEdit, onDelete, onMoveToTomorrow }) {
           ) : null}
         </p>
       </div>
-      <div className="relative shrink-0">
+      <div ref={actionsRef} className="relative shrink-0">
         <button
           type="button"
           aria-label={`More actions for ${task.title}`}
           aria-haspopup="menu"
           aria-expanded={menuOpen}
-          onClick={() => setMenuOpen((open) => !open)}
+          onClick={toggleMenu}
           className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
         >
           <MoreHorizontal className="h-5 w-5" />
         </button>
         {menuOpen ? (
-          <div className="absolute right-0 top-full z-30 mt-1 w-44 rounded-xl border border-border bg-popover p-1.5 shadow-xl">
+          <div
+            className={`absolute right-0 z-30 w-44 rounded-xl border border-border bg-popover p-1.5 shadow-xl ${
+              menuPlacement === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'
+            }`}
+          >
             <MenuAction icon={Pencil} label="Edit / reschedule" onClick={() => run(onEdit)} />
             {!task.completed ? (
               <MenuAction icon={CalendarDays} label="Move to tomorrow" onClick={() => run(onMoveToTomorrow)} />
