@@ -14,13 +14,12 @@ import {
   Clock3,
   MoreHorizontal,
   Pencil,
-  Plus,
   Trash2,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
 
-import { deleteTask, moveTaskToTomorrow, toggleTask, createTask } from '../services/taskService'
+import { deleteTask, moveTaskToTomorrow, toggleTask } from '../services/taskService'
 import { DATE_KEY, todayKey } from '../utils/date'
 import {
   compareTaskTimes,
@@ -32,7 +31,6 @@ import { useAuthStore } from '../store/authStore'
 import { useTaskStore } from '../store/taskStore'
 import { Button } from './ui/button'
 import { Card, CardContent } from './ui/card'
-import { Input } from './ui/input'
 import TaskEditorDialog from './TaskEditorDialog'
 
 const views = [
@@ -50,8 +48,6 @@ export default function TodaysTodo() {
   const [view, setView] = useState('today')
   const [selectedDate, setSelectedDate] = useState(todayKey())
   const [monthDate, setMonthDate] = useState(new Date())
-  const [quickTitle, setQuickTitle] = useState('')
-  const [quickSaving, setQuickSaving] = useState(false)
   const [editorOpen, setEditorOpen] = useState(false)
   const [editingTask, setEditingTask] = useState(null)
 
@@ -75,22 +71,6 @@ export default function TodaysTodo() {
     setSelectedDate(dateKey)
     setMonthDate(date)
     setView('calendar')
-  }
-
-  async function handleQuickAdd(event) {
-    event.preventDefault()
-    const title = quickTitle.trim()
-    if (!title) return
-
-    setQuickSaving(true)
-    try {
-      await createTask(user.uid, { title, dueDate: selectedDate })
-      setQuickTitle('')
-    } catch (error) {
-      toast.error(error?.message || 'Unable to add task.')
-    } finally {
-      setQuickSaving(false)
-    }
   }
 
   async function handleToggle(task) {
@@ -118,6 +98,10 @@ export default function TodaysTodo() {
   }
 
   function openCreateEditor() {
+    if (selectedDate < todayKey()) {
+      setSelectedDate(todayKey())
+      setMonthDate(new Date())
+    }
     setEditingTask(null)
     setEditorOpen(true)
   }
@@ -207,29 +191,6 @@ export default function TodaysTodo() {
             onCreate={openCreateEditor}
           />
         )}
-      </section>
-
-      <section className="rounded-2xl border border-primary/20 bg-card p-4 sm:p-5">
-        <div className="mb-3">
-          <p className="text-xs font-semibold uppercase tracking-[.14em] text-primary">Quick add</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Add an anytime task for {format(parseSelectedDate(selectedDate), 'MMM d')}.
-          </p>
-        </div>
-        <form onSubmit={handleQuickAdd} className="flex gap-2">
-          <Input
-            value={quickTitle}
-            onChange={(event) => setQuickTitle(event.target.value)}
-            placeholder="Buy groceries, finish a document..."
-            aria-label="Quick-add an anytime task"
-            maxLength={120}
-            className="h-11 bg-background/60"
-          />
-          <Button type="submit" disabled={quickSaving || !quickTitle.trim()} aria-label="Add anytime task">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Add</span>
-          </Button>
-        </form>
       </section>
 
       {editorOpen ? (
@@ -346,7 +307,7 @@ function TaskScheduleList({
       <div className="rounded-2xl border border-dashed border-border bg-card/50 px-4 py-8 text-center">
         <Clock3 className="mx-auto h-6 w-6 text-muted-foreground/60" />
         <p className="mt-2 text-sm font-medium">Nothing planned here yet</p>
-        <p className="mt-1 text-xs text-muted-foreground">Schedule a task or add an anytime task below.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Schedule a task to add it to your planner.</p>
         {view === 'calendar' ? (
           <Button className="mt-4" variant="outline" onClick={onCreate}>
             <CalendarPlus className="h-4 w-4" />

@@ -8,7 +8,7 @@ import {
   startOfWeek,
   endOfWeek,
 } from 'date-fns'
-import { DATE_KEY } from './date.js'
+import { DATE_KEY, todayKey } from './date.js'
 
 export function getDateKey(date = new Date()) {
   return format(date, DATE_KEY)
@@ -60,9 +60,10 @@ export function isValidTaskTime(value) {
   return hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59
 }
 
-export function validateTaskDetails(task) {
+export function validateTaskDetails(task, { today = todayKey(), allowPastDate = false } = {}) {
   if (!task.title?.trim()) return 'A task title is required.'
   if (!parseDateKey(task.dueDate)) return 'Choose a valid date.'
+  if (!allowPastDate && task.dueDate < today) return 'Choose today or a future date.'
   if (!task.allDay && !isValidTaskTime(task.startTime)) return 'Enter a valid start time.'
   if (!task.allDay && !isValidTaskTime(task.endTime)) return 'Enter a valid end time.'
   if (

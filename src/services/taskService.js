@@ -6,12 +6,14 @@ import {
 } from '../firebase/firestore'
 import { DATE_KEY, todayKey } from '../utils/date'
 import { DEFAULT_INCOMPLETE_ACTION } from '../utils/task-lifecycle'
-import { getTaskReminderStatus } from '../utils/task-planner'
+import { getTaskReminderStatus, validateTaskDetails } from '../utils/task-planner'
 
 export function createTask(userId, task, incompleteAction = DEFAULT_INCOMPLETE_ACTION) {
   const values = typeof task === 'string'
     ? { title: task, dueDate: todayKey(), incompleteAction }
     : task
+  const validationError = validateTaskDetails(values)
+  if (validationError) throw new Error(validationError)
 
   return createTaskDocument(userId, {
     title: values.title.trim(),
@@ -33,7 +35,12 @@ export function createTask(userId, task, incompleteAction = DEFAULT_INCOMPLETE_A
   })
 }
 
-export function updateTask(userId, taskId, values) {
+export function updateTask(userId, taskId, values, originalDueDate) {
+  const validationError = validateTaskDetails(values, {
+    allowPastDate: values.dueDate === originalDueDate,
+  })
+  if (validationError) throw new Error(validationError)
+
   return updateTaskDocument(userId, taskId, {
     title: values.title.trim(),
     description: values.description?.trim() || '',

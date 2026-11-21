@@ -87,6 +87,27 @@ test('task times require valid values and a later end, while allowing overlaps',
   assert.equal(validateTaskDetails(overlappingTask), '')
 })
 
+test('task dates cannot be newly set in the past but existing overdue tasks remain editable', () => {
+  const task = {
+    title: 'Calendar event',
+    dueDate: '2026-11-20',
+    allDay: true,
+  }
+
+  assert.equal(
+    validateTaskDetails(task, { today: '2026-11-21' }),
+    'Choose today or a future date.',
+  )
+  assert.equal(
+    validateTaskDetails({ ...task, dueDate: '2026-11-21' }, { today: '2026-11-21' }),
+    '',
+  )
+  assert.equal(
+    validateTaskDetails(task, { today: '2026-11-21', allowPastDate: true }),
+    '',
+  )
+})
+
 test('all-day and anytime tasks are labeled separately', () => {
   assert.equal(taskTimeLabel({ allDay: true }), 'All day')
   assert.equal(taskTimeLabel({}), 'Anytime')

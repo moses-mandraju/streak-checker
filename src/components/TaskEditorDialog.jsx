@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { createTask, updateTask } from '../services/taskService'
+import { todayKey } from '../utils/date'
 import { validateTaskDetails } from '../utils/task-planner'
 import { Button } from './ui/button'
 import { Dialog } from './ui/dialog'
@@ -47,7 +48,9 @@ export default function TaskEditorDialog({
 
   async function handleSubmit(event) {
     event.preventDefault()
-    const validationError = validateTaskDetails(values)
+    const validationError = validateTaskDetails(values, {
+      allowPastDate: Boolean(task && values.dueDate === task.dueDate),
+    })
     if (validationError) {
       setError(validationError)
       return
@@ -56,10 +59,15 @@ export default function TaskEditorDialog({
     setSaving(true)
     try {
       if (task) {
-        await updateTask(userId, task.id, {
-          ...values,
-          completed: task.completed,
-        })
+        await updateTask(
+          userId,
+          task.id,
+          {
+            ...values,
+            completed: task.completed,
+          },
+          task.dueDate,
+        )
       } else {
         await createTask(userId, values)
         setValues(getInitialValues(null, selectedDate))
@@ -105,6 +113,12 @@ export default function TaskEditorDialog({
           <Input
             type="date"
             required
+            min={
+              task && task.dueDate < todayKey() &&
+                values.dueDate === task.dueDate
+                ? task.dueDate
+                : todayKey()
+            }
             value={values.dueDate}
             onChange={(event) => updateValue('dueDate', event.target.value)}
           />
