@@ -403,7 +403,7 @@ function TaskRow({ task, onToggle, onEdit, onDelete, onMoveToTomorrow }) {
   }
 
   return (
-    <li className={`flex items-center gap-3 px-3 py-3 sm:px-4 ${task.completed ? 'opacity-65' : ''}`}>
+    <li className={`relative flex items-center gap-3 px-3 py-3 sm:px-4 ${menuOpen ? 'z-50' : ''}`}>
       <button
         type="button"
         aria-label={task.completed ? `Mark ${task.title} incomplete` : `Complete ${task.title}`}
@@ -417,7 +417,7 @@ function TaskRow({ task, onToggle, onEdit, onDelete, onMoveToTomorrow }) {
       >
         <Check className="h-3.5 w-3.5" />
       </button>
-      <div className="min-w-0 flex-1">
+      <div className={`min-w-0 flex-1 ${task.completed ? 'opacity-65' : ''}`}>
         <p className={`break-words text-sm font-medium ${task.completed ? 'text-muted-foreground line-through' : ''}`}>
           {task.title}
         </p>
